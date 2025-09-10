@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 290mm;
+            /* 横向A4大小 */
+            table-layout: fixed;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 5px;
+            height: 30px;
+        }
+
+        tr:nth-child(1),
+        tr:nth-child(15) {
+            border: none;
+        }
+
+       .biaoti {
+            font-family: 微软雅黑;
+            font-size: 33px;
+            font-weight: bold;
+            /* 移除原有的虚线边框，改为双下划线 */
+            border-bottom: none;
+            border: 1px solid transparent;
+            color: #020202;
+            /* 双下划线样式 */
+            text-decoration: underline double;
+            text-underline-offset: 6px; /* 下划线与文字的距离 */
+            text-decoration-thickness: 2px; /* 下划线粗细 */
+            padding-bottom: 5px; /* 增加底部内边距，避免下划线与边框重叠 */
+        }
+
+        .zytouming {
+            font-family: 宋体;
+            font-size: 18px;
+            font-weight: normal;
+            border-left: 1px solid transparent;
+            /* 将左侧边框设置为透明 */
+            border-right: 1px solid transparent;
+            /* 将右侧边框设置为透明 */
+        }
+
+        .bktouming {
+            font-family: 宋体;
+            font-size: 16px;
+            font-weight: normal;
+            border: 1px solid transparent;
+            outline: none;
+            /* 移除焦点时的轮廓线 */
+        }
+
+        .wzzsduiqi {
+            text-align: left;
+            /* 文字水平向左对齐 */
+            vertical-align: top;
+            /* 文字垂直向上对齐 */
+        }
+
+        /* 隐藏带有ycsj类的input右侧的上下箭头 */
+        .ycsj::-webkit-outer-spin-button,
+        .ycsj::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+
+        .bjnp {
+            background-color: lightgray;
+        }
+
+        /* 非打印状态下表格居中显示 */
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* 打印时的样式  全页面居中 */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                box-sizing: border-box;
+            }
+
+            .bjnp {
+                background-color: transparent;
+                /* 打印时将背景颜色设为透明 */
+            }
+
+            /* 对于Firefox，仅对带有custom-number类的input生效 */
+            .ycsj {
+                -moz-appearance: textfield;
+            }
+
+            /* 打印时隐藏注释和新增的底部提示 */
+            .comment,
+            .bottom-tip {
+                display: none;
+            }
+        }
+
+        /* 新增的右侧提示样式 */
+        .bottom-tip {
+            position: fixed;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            background-color: #f0f0f0;
+            padding: 10px;
+            width: 200px; /* 可以根据需要调整宽度 */
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+    <script>
+        function convertToChineseUppercase(num) {
+            const fraction = ['角', '分'];
+            const digit = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+            const unit = [['元', '万', '亿'], ['', '拾', '佰', '仟']];
+            let head = num < 0 ? '欠' : '';
+            num = Math.abs(num);
+
+            let s = '';
+
+            for (let i = 0; i < fraction.length; i++) {
+                s += (digit[Math.floor(num * 10 * Math.pow(10, i)) % 10] + fraction[i]).replace(/零./, '');
+            }
+
+            s = s || '整';
+            num = Math.floor(num);
+
+            for (let i = 0; i < unit[0].length && num > 0; i++) {
+                let p = '';
+
+                for (let j = 0; j < unit[1].length && num > 0; j++) {
+                    p = digit[num % 10] + unit[1][j] + p;
+                    num = Math.floor(num / 10);
+                }
+
+                s = p.replace(/(零.)*零$/, '').replace(/^$/, '零') + unit[0][i] + s;
+            }
+
+            return head + s.replace(/(零.)*零元/, '元').replace(/(零.)+/g, '零').replace(/^整$/, '零元整');
+        }
+
+        function calculateSum() {
+
+            // 定义所有需要计算的行的总和
+            const rows = [
+                {
+                    ids: ['hc1', 'qc1', 'fj1', 'lc1', 'zs1', 'snje1', 'hsje1'], sumId: 'sum1'
+                },
+                {
+                    ids: ['hc2', 'qc2', 'fj2', 'lc2', 'zs2', 'snje2', 'hsje2'], sumId: 'sum2'
+                },
+                {
+                    ids: ['hc3', 'qc3', 'fj3', 'lc3', 'zs3', 'snje3', 'hsje3'], sumId: 'sum3'
+                },
+                {
+                    ids: ['hc4', 'qc4', 'fj4', 'lc4', 'zs4', 'snje4', 'hsje4'], sumId: 'sum4'
+                },
+                {
+                    ids: ['hc1', 'hc2', 'hc3', 'hc4'], sumId: 'hc5'
+                },
+                {
+                    ids: ['qc1', 'qc2', 'qc3', 'qc4'], sumId: 'qc5'
+                },
+                {
+                    ids: ['fj1', 'fj2', 'fj3', 'fj4'], sumId: 'fj5'
+                },
+                {
+                    ids: ['lc1', 'lc2', 'lc3', 'lc4'], sumId: 'lc5'
+                },
+                {
+                    ids: ['zs1', 'zs2', 'zs3', 'zs4'], sumId: 'zs5'
+                },
+                {
+                    ids: ['snje1', 'snje2', 'snje3', 'snje4'], sumId: 'snje5'
+                },
+                {
+                    ids: ['hsje1', 'hsje2', 'hsje3', 'hsje4'], sumId: 'hsje5'
+                },
+                {
+                    ids: ['hc1', 'qc1', 'fj1', 'lc1', 'zs1', 'snje1', 'hsje1', 'hc2', 'qc2', 'fj2', 'lc2', 'zs2', 'snje2', 'hsje2', 'hc3', 'qc3', 'fj3', 'lc3', 'zs3', 'snje3', 'hsje3', 'hc4', 'qc4', 'fj4', 'lc4', 'zs4', 'snje4', 'hsje4'], sumId: 'sum5'
+                },
+                {
+                    ids: ['hc1', 'qc1', 'fj1', 'lc1', 'zs1', 'snje1', 'hsje1', 'hc2', 'qc2', 'fj2', 'lc2', 'zs2', 'snje2', 'hsje2', 'hc3', 'qc3', 'fj3', 'lc3', 'zs3', 'snje3', 'hsje3', 'hc4', 'qc4', 'fj4', 'lc4', 'zs4', 'snje4', 'hsje4'], sumId: 'sum6'
+                },
+            ];
+
+            rows.forEach(row => {
+                const sum = row.ids.reduce((total, id) => {
+                    return total + (parseFloat(document.getElementById(id).value) || 0);
+                }, 0);
+
+                document.getElementById(row.sumId).textContent = sum.toFixed(2);
+            });
+            // 获取 sum6 的值并转换为中文大写
+            const sum6Value = parseFloat(document.getElementById('sum6').textContent) || 0;
+            const chineseUppercase = convertToChineseUppercase(sum6Value);
+            document.getElementById('sum7').textContent = chineseUppercase;
+        }
+
+        // 为输入框绑定事件监听器
+        function setupEventListeners() {
+            const inputs = document.querySelectorAll('.ycsj');
+
+            inputs.forEach(input => {
+                input.addEventListener('input', calculateSum);
+            });
+        }
+    </script>
+</head>
+<body onload="setupEventListeners()">
+
+    <table>
+        <tr>
+            <td border="12" align="center" colspan="17" height="80" class="biaoti" onclick="window.print();">&nbsp;&nbsp;&nbsp;&nbsp;差&nbsp;&nbsp;旅&nbsp;&nbsp;费&nbsp;&nbsp;报&nbsp;&nbsp;销&nbsp;&nbsp;补&nbsp;&nbsp;助&nbsp;&nbsp;单&nbsp;&nbsp;&nbsp;&nbsp;</td>
+        </tr>
+        <tr>
+            <td colspan="2" align="left" class="zytouming">单位：</td>
+            <td colspan="5" align="left" class="zytouming" contenteditable="true">
+                <select style="width: 70mm;height: 25px;font-size: 18px;border: 1px solid transparent">
+                    <option>集安市林业局</option>
+                    <option>集安市国有林总场</option>
+                    <option>国营集安市大青沟林场</option>
+                    <option>集安市热闹林场</option>
+                    <option>集安市双岔林场</option>
+                    <option>国营集安市太王林场</option>
+                    <option>集安市头道林场</option>
+                    <option>国营集安市榆林林场</option>
+                </select>
+            </td>
+            <td colspan="5" align="center" class="zytouming">
+                <input type="date" class="bktouming">
+            </td>
+            <td colspan="2" align="right" class="zytouming">附单据</td>
+            <td class="zytouming" contenteditable="true"></td>
+            <td colspan="2" class="zytouming">张</td>
+        </tr>
+        <tr align="center">
+            <td colspan="2" class="bjnp">姓名：</td>
+            <td colspan="3" contenteditable="true"></td>
+            <td colspan="2" class="bjnp">同行人数</td>
+            <td contenteditable="true"></td>
+            <td colspan="2" class="bjnp">出差目的地</td>
+            <td colspan="2" contenteditable="true"></td>
+            <td colspan="2" class="bjnp">出差事由</td>
+            <td colspan="3" contenteditable="true"></td>
+        </tr>
+        <tr align="center" class="bjnp">
+            <td colspan="2">日期</td>
+            <td rowspan="2" colspan="2">出发地</td>
+            <td rowspan="2" colspan="2">到达地</td>
+            <td colspan="4">交通费</td>
+            <td rowspan="2">住宿</td>
+            <td colspan="2">市内交通</td>
+            <td colspan="2">伙食补助</td> 
+            <td rowspan="2" colspan="2">小计</td>
+        </tr>
+        <tr align="center" class="bjnp">
+            <td>月</td>
+            <td>日</td>
+            <td>火车</td>
+            <td>汽车</td>
+            <td>飞机</td>
+            <td>轮船</td>
+            <td>天数</td>
+            <td>金额</td>
+            <td>天数</td>
+            <td>金额</td>
+        </tr>
+        <tr align="center">
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td style="width: 30mm; ">
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hc1">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="qc1">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="fj1">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="lc1">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="zs1">
+            </td>
+            <td contenteditable="true" id="snts1"></td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje1">
+            </td>
+            <td contenteditable="true" id="hsts1"></td> <!-- 天数 -->
+            
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje1">
+            </td>
+            <td id="sum1" class="bjnp" colspan="2"></td>
+        </tr>
+
+        <tr align="center">
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td style="width: 30mm;">
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hc2">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="qc2">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="fj2">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="lc2">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="zs2">
+            </td>
+            <td contenteditable="true" id="snts2"></td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje2">
+            </td>
+            <td contenteditable="true" id="hsts2"></td> <!-- 天数 -->
+            <!-- 移除了人数列 <td contenteditable="true" id="hsrs2"></td> -->
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje2">
+            </td>
+            <td id="sum2" class="bjnp" colspan="2"></td>
+        </tr>
+        <tr align="center">
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td style="width: 30mm;">
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hc3">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="qc3">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="fj3">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="lc3">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="zs3">
+            </td>
+            <td contenteditable="true" id="snts3"></td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje3">
+            </td>
+            <td contenteditable="true" id="hsts3"></td> <!-- 天数 -->
+            <!-- 移除了人数列 <td contenteditable="true" id="hsrs3"></td> -->
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje3">
+            </td>
+            <td id="sum3" class="bjnp" colspan="2"></td>
+        </tr>
+
+        <tr align="center">
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td style="width: 30mm;">
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hc4">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="qc4">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="fj4">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="lc4">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="zs4">
+            </td>
+            <td contenteditable="true" id="snts4"></td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje4">
+            </td>
+            <td contenteditable="true" id="hsts4"></td> <!-- 天数 -->
+            <!-- 移除了人数列 <td contenteditable="true" id="hsrs4"></td> -->
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje4">
+            </td>
+            <td id="sum4" class="bjnp" colspan="2"></td>
+        </tr>
+
+        <tr align="center" class="bjnp">
+            <td colspan="6">合计：</td>
+            <td id="hc5"></td>
+            <td id="qc5"></td>
+            <td id="fj5"></td>
+            <td id="lc5"></td>
+            <td id="zs5"></td>
+            <td id="snts5"></td>
+            <td id="snje5"></td>
+            <td id="hsts5"></td> <!-- 天数合计 -->
+            <!-- 移除了人数合计列 <td id="hsrs5"></td> -->
+            <td id="hsje5"></td>
+            <td id="sum5" colspan="2"></td>
+        </tr>
+
+        <tr align="center">
+            <td colspan="3" class="bjnp">说             明</td>
+            <td colspan="14" contenteditable="true"></td> <!-- 修改：将colspan从14改为13 -->
+        </tr>
+
+        <tr align="center" class="bjnp">
+            <td colspan="3">出差日数</td>
+
+            <td colspan="9"> <!-- 修改：将colspan从10改为9 -->
+                <label for="start_date">自</label>
+                <input type="date" id="start_date" style="width: 35mm;height: 25px;font-size: 16px;border: 1px solid transparent">
+
+                <label for="end_date">至</label>
+                <input type="date" id="end_date" style="width: 45mm;height: 25px;font-size: 16px;border: 1px solid transparent">
+
+
+            </td>
+            <td colspan="5">
+                <p id="result">共计：</p>
+
+                <script>
+                    // 获取日期输入字段的引用
+                    var startDateInput = document.getElementById("start_date");
+                    var endDateInput = document.getElementById("end_date");
+
+                    // 获取结果显示的引用
+                    var resultParagraph = document.getElementById("result");
+
+                    // 添加输入事件监听器，当日期输入字段值更改时更新日期差异
+                    startDateInput.addEventListener("input", updateDateDifference);
+                    endDateInput.addEventListener("input", updateDateDifference);
+
+                    // 初始化计算
+                    updateDateDifference();
+
+                    function updateDateDifference() {
+                        // 获取用户输入的日期
+                        var startDate = new Date(startDateInput.value);
+                        var endDate = new Date(endDateInput.value);
+
+                        // 计算日期差异的毫秒数
+                        var timeDifference = endDate - startDate;
+
+                        // 计算并显示日期差异的天数
+                        var daysDifference = Math.floor(timeDifference / (1000 * 60 * 60 * 24) + 1);
+                        resultParagraph.textContent = "共计：" + daysDifference + " 天";
+                    }
+                </script>
+            </td>
+        </tr>
+
+        <tr align="center" class="bjnp">
+            <td colspan="3" class="bjnp">差旅总额</td>
+            <td colspan="4" align="right" style="border-right: 1px solid transparent; ">人民币（大写）：</td>
+            <td colspan="5" align="left" style="border-left: 1px solid transparent; " id="sum7">0.00</td>
+            <td colspan="2" align="right" style="border-right: 1px solid transparent; ">小写：￥</td>
+            <td colspan="3" align="left" style="border-left: 1px solid transparent; " id="sum6">0.00</td>
+        </tr>
+
+        <tr class="wzzsduiqi" style="height: 85px;">
+            <td colspan="5" rowspan="2" class="bjnp">领导审批</td>
+            <td colspan="4" rowspan="2" class="bjnp">财务负责人</td>
+            <td colspan="4" rowspan="2" class="bjnp">分管领导</td>
+            <td colspan="4" rowspan="2" class="bjnp">部门负责人</td> 
+        </tr>
+
+        <tr>
+
+
+        </tr>
+
+        <tr>
+            <td align="right" colspan="2" height="30" style="border: 1px solid transparent" class="bjnp">出差人：</td>
+            <td align="left" colspan="14" height="30" style="border: 1px solid transparent" contenteditable="true" ></td> 
+        </tr>
+    </table>
+
+    <!-- 新增的右侧提示 -->
+    <div class="bottom-tip">
+		<a>温馨提示：如表格显示不全，可按住键盘左下角的ctrl并滚动鼠标中间的滚轮就可以完整显示完整</a>
+		<br>
+		<br>
+		<button onclick="window.print()">打印/另存</button>
+		<br>
+		<br>
+		<a>
+            通化地区<br>
+			出差交通补助80元/人/天<br>
+			伙食补助50元/人/天<br>
+			吉林省内通化以外地区<br>
+			交通补助80元/人/天<br>
+			伙食补助100元/人/天<br>
+			下乡补助25元/人/天
+        </a>
+		<br>
+		<a href="http://xxgk.jllh.gov.cn/zcbm/jyj_98097/xbxxgkml_13734/202309/W020230918660098403001.docx" target="_blank">
+            1.吉林省省直机关工作人员赴省外差旅住宿费标准明细表
+        </a>
+        <a href="http://xxgk.jllh.gov.cn/zcbm/jyj_98097/xbxxgkml_13734/202309/t20230918_671802.html" target="_blank">
+            &nbsp;&nbsp;&nbsp;&nbsp;(表格发布网站)
+        </a>
+        <br>
+        <a href="http://czt.jl.gov.cn/zwgk/zzfg/201710/t20171010_1249878.html" target="_blank">
+            2.吉林省省直机关差旅费管理办法&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        </a>
+        <br>
+        <a href="http://czt.jl.gov.cn/zwgk/zcjd/201512/t20151223_1230542.html" target="_blank">
+            3.吉林省省直机关差旅费管理办法有关问题的解答 &nbsp;&nbsp;&nbsp;&nbsp;吉财行〔2015〕864号
+        </a>
+        <br>
+        <a href="http://czt.jl.gov.cn/zwgk/zzfg/201903/t20190326_1249993.html" target="_blank">
+            4.吉林省省直机关差旅费、会议费、培训费有关问题的解答  &nbsp;&nbsp;&nbsp;&nbsp;吉财党群〔2019〕162号
+        </a>
+        <br>
+        <a href="https://xxgk.jl.gov.cn/zcbm/fgw_98017/xxgkmlqy/201912/t20191212_6289361.html" target="_blank">
+            5.关于印发《吉林省省直机关差旅费管理办法有关问题的解答》的通知 &nbsp;&nbsp;&nbsp;&nbsp;吉财行〔2015〕864号
+        </a>
+
+    </div>
+</body>
+</html>
