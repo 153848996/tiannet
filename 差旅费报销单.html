@@ -84,6 +84,8 @@
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
+            /* 为左侧提示栏预留空间 */
+            padding-left: 220px;
         }
 
         /* 打印时的样式  全页面居中 */
@@ -96,6 +98,7 @@
                 align-items: center;
                 height: 100vh;
                 box-sizing: border-box;
+                padding-left: 0;
             }
 
             .bjnp {
@@ -108,14 +111,15 @@
                 -moz-appearance: textfield;
             }
 
-            /* 打印时隐藏注释和新增的底部提示 */
+            /* 打印时隐藏注释和提示栏 */
             .comment,
-            .bottom-tip {
+            .bottom-tip,
+            .left-tip {
                 display: none;
             }
         }
 
-        /* 新增的右侧提示样式 */
+        /* 右侧提示样式 */
         .bottom-tip {
             position: fixed;
             top: 50%;
@@ -123,9 +127,34 @@
             transform: translateY(-50%);
             background-color: #f0f0f0;
             padding: 10px;
-            width: 200px; /* 可以根据需要调整宽度 */
+            width: 200px;
             border-radius: 5px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 左侧提示栏样式 */
+        .left-tip {
+            position: fixed;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            background-color: #f8f9fa;
+            padding: 15px;
+            width: 180px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+        }
+        /* 左侧提示栏标题样式 */
+        .left-tip-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
         }
     </style>
     <script>
@@ -229,6 +258,15 @@
 </head>
 <body onload="setupEventListeners()">
 
+    <!-- 左侧提示栏 -->
+    <div class="left-tip">
+        <div class="left-tip-title">使用提示</div>
+        <p>温馨提示：如表格显示不全，可按住键盘左下角的ctrl并滚动鼠标中间的滚轮就可以完整显示完整</p>
+        <p>重要提示：不要在微信中直接打开本页面，会无法打印，复制地址到网页中打开即可正常打印</p>
+        <p>填写完成后，点击右侧「打印/另存」按钮导出</p>
+
+    </div>
+
     <table>
         <tr>
             <td border="12" align="center" colspan="17" height="80" class="biaoti" onclick="window.print();">&nbsp;&nbsp;&nbsp;&nbsp;差&nbsp;&nbsp;旅&nbsp;&nbsp;费&nbsp;&nbsp;报&nbsp;&nbsp;销&nbsp;&nbsp;补&nbsp;&nbsp;助&nbsp;&nbsp;单&nbsp;&nbsp;&nbsp;&nbsp;</td>
@@ -236,16 +274,7 @@
         <tr>
             <td colspan="2" align="left" class="zytouming">单位：</td>
             <td colspan="5" align="left" class="zytouming" contenteditable="true">
-                <select style="width: 70mm;height: 25px;font-size: 18px;border: 1px solid transparent">
-                    <option>集安市林业局</option>
-                    <option>集安市国有林总场</option>
-                    <option>国营集安市大青沟林场</option>
-                    <option>集安市热闹林场</option>
-                    <option>集安市双岔林场</option>
-                    <option>国营集安市太王林场</option>
-                    <option>集安市头道林场</option>
-                    <option>国营集安市榆林林场</option>
-                </select>
+                
             </td>
             <td colspan="5" align="center" class="zytouming">
                 <input type="date" class="bktouming">
@@ -343,7 +372,6 @@
                 <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje2">
             </td>
             <td contenteditable="true" id="hsts2"></td> <!-- 天数 -->
-            <!-- 移除了人数列 <td contenteditable="true" id="hsrs2"></td> -->
             <td>
                 <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje2">
             </td>
@@ -374,7 +402,6 @@
                 <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje3">
             </td>
             <td contenteditable="true" id="hsts3"></td> <!-- 天数 -->
-            <!-- 移除了人数列 <td contenteditable="true" id="hsrs3"></td> -->
             <td>
                 <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje3">
             </td>
@@ -406,7 +433,6 @@
                 <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje4">
             </td>
             <td contenteditable="true" id="hsts4"></td> <!-- 天数 -->
-            <!-- 移除了人数列 <td contenteditable="true" id="hsrs4"></td> -->
             <td>
                 <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje4">
             </td>
@@ -423,20 +449,19 @@
             <td id="snts5"></td>
             <td id="snje5"></td>
             <td id="hsts5"></td> <!-- 天数合计 -->
-            <!-- 移除了人数合计列 <td id="hsrs5"></td> -->
             <td id="hsje5"></td>
             <td id="sum5" colspan="2"></td>
         </tr>
 
         <tr align="center">
             <td colspan="3" class="bjnp">说             明</td>
-            <td colspan="14" contenteditable="true"></td> <!-- 修改：将colspan从14改为13 -->
+            <td colspan="14" contenteditable="true"></td>
         </tr>
 
         <tr align="center" class="bjnp">
             <td colspan="3">出差日数</td>
 
-            <td colspan="9"> <!-- 修改：将colspan从10改为9 -->
+            <td colspan="9">
                 <label for="start_date">自</label>
                 <input type="date" id="start_date" style="width: 35mm;height: 25px;font-size: 16px;border: 1px solid transparent">
 
@@ -495,8 +520,6 @@
         </tr>
 
         <tr>
-
-
         </tr>
 
         <tr>
@@ -505,15 +528,12 @@
         </tr>
     </table>
 
-    <!-- 新增的右侧提示 -->
+    <!-- 右侧提示 -->
     <div class="bottom-tip">
-		<a>温馨提示：如表格显示不全，可按住键盘左下角的ctrl并滚动鼠标中间的滚轮就可以完整显示完整</a><br>
-		<a>重要提示：不要在微信中直接打开本页面，会无法打印，复制地址到网页中打开即可正常打印</a>
-		<br>
-		<br>
-		<button onclick="window.print()">打印/另存</button>
-		<br>
-		<br>
+
+		
+		<button onclick="window.print()">打印/另存</button><br>
+		
 		<a>
             通化地区<br>
 			出差交通补助80元/人/天<br>
@@ -551,4 +571,3 @@
 </body>
 
 </html>
-
