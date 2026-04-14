@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工资明细查询系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root { --primary-color: #1a5fb4; --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333; }
+        body { font-family: "Microsoft YaHei", sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        
+        /* 标题样式 */
+        .main-header { text-align: center; margin-bottom: 30px; cursor: pointer; transition: opacity 0.3s; }
+        .main-header:hover { opacity: 0.8; }
+        .main-header h1 { display: inline-block; vertical-align: middle; margin: 0; color: var(--primary-color); }
+        .main-header .logo { font-size: 32px; vertical-align: middle; margin-right: 10px; }
+        .admin-hint { font-size: 12px; color: #999; margin-top: 5px; opacity: 0; transition: opacity 0.3s; }
+        .main-header:hover .admin-hint { opacity: 1; }
+
+        .card { background: var(--card-bg); border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .btn { display: inline-block; padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; text-align: center; width: 100%; box-sizing: border-box; }
+        .btn:hover { background: #164d8f; }
+        .btn-danger { background: #e74c3c; }
+        .btn-secondary { background: #95a5a6; margin-top: 10px; }
+        
+        input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        
+        .preview-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .preview-table th, .preview-table td { border: 1px solid #eee; padding: 10px; text-align: left; font-size: 14px; }
+        .preview-table th { background: #f8f9fa; }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; background: #d4edda; color: #155724; }
+        
+        .result-card { display: none; text-align: left; }
+        .result-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .result-label { color: #666; font-weight: bold; }
+        .result-value { color: #333; text-align: right; flex: 1; margin-left: 10px; word-break: break-all;}
+        .highlight { color: var(--primary-color); font-weight: bold; font-size: 1.1em; }
+        
+        .alert { padding: 10px; background: #f8d7da; color: #721c24; border-radius: 5px; margin-top: 10px; display: none; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 标题区域 (点击 Logo 进入管理员) -->
+    <div class="main-header" onclick="enterAdminMode()">
+        <div class="logo">💰</div>
+        <h1>工资明细查询系统</h1>
+        <div class="admin-hint">点击图标进入管理后台</div>
+    </div>
+
+    <!-- 管理员界面 (默认隐藏) -->
+    <div id="admin-panel" class="card hidden">
+        <h3>📂 智能导入工资表</h3>
+        <p style="font-size: 12px; color: #666;">系统会自动识别表头位置，支持 .xls 和 .xlsx 格式。</p>
+        
+        <input type="file" id="file-upload" accept=".xlsx, .xls">
+        <button class="btn" onclick="handleFile()">生成并保存工资条</button>
+        <div id="status-msg" style="margin-top:10px; color: green; font-weight: bold;"></div>
+
+        <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
+
+        <h3>🛠️ 系统维护</h3>
+        <button class="btn btn-danger" onclick="clearData()">🗑️ 清除所有工资数据</button>
+        <button class="btn btn-secondary" onclick="exitAdminMode()">🔙 返回员工查询页</button>
+
+        <h3 style="margin-top: 20px;">👁️ 导入数据预览 (前10条)</h3>
+        <div id="preview-container" style="overflow-x: auto;"></div>
+    </div>
+
+    <!-- 员工界面 (默认显示) -->
+    <div id="emp-panel" class="card">
+        <div style="text-align: center; padding: 20px 0;">
+            <h3 style="margin-bottom: 20px;">🔍 登录查询</h3>
+            <input type="text" id="query-name" placeholder="姓名">
+            <input type="text" id="query-id" placeholder="密码 (身份证后六位)">
+            <button class="btn" onclick="querySalary()">登录查看</button>
+            <div id="error-msg" class="alert"></div>
+        </div>
+
+        <div id="result-card" class="result-card">
+            <div id="result-content"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 页面加载初始化
+    window.onload = function() { 
+        renderPreview(); 
+        // 默认显示员工面板，隐藏管理员面板
+        document.getElementById('admin-panel').classList.add('hidden');
+        document.getElementById('emp-panel').classList.remove('hidden');
+    };
+
+    // --- 管理员入口逻辑 ---
+    function enterAdminMode() {
+        // 简单的密码保护 (默认密码 admin)
+        const password = prompt("🔒 请输入管理员密码 :");
+        if (password === 'admin') {
+            document.getElementById('emp-panel').classList.add('hidden');
+            document.getElementById('admin-panel').classList.remove('hidden');
+            window.scrollTo(0, 0); // 滚动到顶部
+        } else if (password !== null) {
+            alert("密码错误！");
+        }
+    }
+
+    function exitAdminMode() {
+        document.getElementById('admin-panel').classList.add('hidden');
+        document.getElementById('emp-panel').classList.remove('hidden');
+    }
+
+    // --- 文件处理逻辑 ---
+    function handleFile() {
+        const fileInput = document.getElementById('file-upload');
+        if (fileInput.files.length === 0) { alert("请先选择文件！"); return; }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+
+                // 智能读取：获取所有行
+                const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+                if (rawData.length === 0) { alert("文件为空！"); return; }
+
+                // 智能寻找表头
+                let headerRowIndex = -1;
+                let headerKeys = [];
+
+                for (let i = 0; i < rawData.length; i++) {
+                    const rowText = JSON.stringify(rawData[i]);
+                    if (rowText.includes('姓名') && rowText.includes('身份证')) {
+                        headerRowIndex = i;
+                        headerKeys = rawData[i].map(h => String(h).trim());
+                        break;
+                    }
+                }
+
+                if (headerRowIndex === -1) {
+                    alert("❌ 无法自动识别表头！\n请确保Excel中包含“姓名”和“身份证”这两个词。");
+                    return;
+                }
+
+                // 提取数据
+                const dataRows = rawData.slice(headerRowIndex + 1);
+                const processedData = dataRows.map(row => {
+                    let obj = {};
+                    headerKeys.forEach((key, index) => {
+                        let val = row[index];
+                        if (typeof val === 'number' && key.includes('身份证')) {
+                            val = Math.floor(val).toString();
+                        }
+                        obj[key] = val;
+                    });
+                    
+                    const nameKey = headerKeys.find(k => k.includes('姓名'));
+                    const idKey = headerKeys.find(k => k.includes('身份证'));
+                    
+                    return {
+                        name: String(obj[nameKey] || '').trim(),
+                        idCard: String(obj[idKey] || '').trim(),
+                        details: obj
+                    };
+                }).filter(item => item.name && item.idCard);
+
+                localStorage.setItem('salary_data', JSON.stringify(processedData));
+                document.getElementById('status-msg').innerText = `✅ 成功保存 ${processedData.length} 条记录！`;
+                renderPreview();
+
+            } catch (err) {
+                alert("解析出错：" + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function renderPreview() {
+        const data = JSON.parse(localStorage.getItem('salary_data')) || [];
+        const container = document.getElementById('preview-container');
+        if (data.length === 0) { container.innerHTML = '<p style="color:#999; text-align:center;">暂无数据</p>'; return; }
+
+        const keys = Object.keys(data[0].details).filter(k => !k.includes('姓名') && !k.includes('身份证'));
+        let html = '<table class="preview-table"><thead><tr>';
+        keys.forEach(k => html += `<th>${k}</th>`);
+        html += '<th>状态</th></tr></thead><tbody>';
+
+        data.slice(0, 10).forEach(row => {
+            html += '<tr>';
+            keys.forEach(k => {
+                let val = row.details[k];
+                if(String(k).includes('身份证')) val = val.toString().substr(0,6) + '***';
+                html += `<td>${val}</td>`;
+            });
+            html += '<td><span class="status-badge">已保存</span></td></tr>';
+        });
+        container.innerHTML = html;
+    }
+
+    function clearData() {
+        if (confirm("确定清除所有数据？")) {
+            localStorage.removeItem('salary_data');
+            renderPreview();
+            document.getElementById('status-msg').innerText = "数据已清除";
+        }
+    }
+
+    // --- 员工查询逻辑 ---
+    function querySalary() {
+        const name = document.getElementById('query-name').value.trim();
+        const idSuffix = document.getElementById('query-id').value.trim().toUpperCase();
+        const errorMsg = document.getElementById('error-msg');
+        const resultCard = document.getElementById('result-card');
+        
+        errorMsg.style.display = 'none';
+        resultCard.style.display = 'none';
+
+        if (!name || !idSuffix) { errorMsg.innerText = "请输入完整信息"; errorMsg.style.display = 'block'; return; }
+
+        const data = JSON.parse(localStorage.getItem('salary_data')) || [];
+        const match = data.find(row => row.name === name && row.idCard.toUpperCase().endsWith(idSuffix));
+
+        if (match) {
+            let html = '';
+            Object.keys(match.details).forEach(key => {
+                if (key.includes('姓名') || key.includes('身份证')) return;
+                const isPay = key.includes('实发') || key.includes('合计');
+                html += `<div class="result-item"><span class="result-label">${key}：</span><span class="result-value ${isPay ? 'highlight' : ''}">${match.details[key]}</span></div>`;
+            });
+            document.getElementById('result-content').innerHTML = html;
+            resultCard.style.display = 'block';
+        } else {
+            errorMsg.innerText = "未找到匹配记录，请检查姓名或身份证后六位。";
+            errorMsg.style.display = 'block';
+        }
+    }
+</script>
+</body>
+</html>
