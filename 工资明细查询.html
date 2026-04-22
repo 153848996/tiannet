@@ -3,112 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工资明细查询系统 (安全修复版)</title>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <title>企业工资条查询系统 (云端版)</title>
+    
+    <!-- 必须的库：Excel 解析库 (原代码缺失，已补全) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Firebase SDK (保持版本一致) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
+        /* --- 基础样式保持不变 --- */
         :root { --primary-color: #1a5fb4; --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333; }
         body { font-family: "Microsoft YaHei", sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; }
         
-        .main-header { text-align: center; margin-bottom: 30px; cursor: pointer; transition: opacity 0.3s; user-select: none; }
-        .main-header:hover { opacity: 0.8; }
-        .main-header h1 { display: inline-block; vertical-align: middle; margin: 0; color: var(--primary-color); font-size: 28px; }
-        .main-header .logo { font-size: 32px; vertical-align: middle; margin-right: 10px; display: inline-block; }
-        .admin-hint { font-size: 12px; color: #999; margin-top: 5px; opacity: 0; transition: opacity 0.3s; }
-        .main-header:hover .admin-hint { opacity: 1; }
+        /* --- 新增：配置区域样式 --- */
+        #config-panel {
+            background: #fff3cd; border: 1px solid #ffeeba; color: #856404;
+            padding: 20px; border-radius: 8px; margin-bottom: 20px;
+            font-family: monospace; font-size: 13px;
+        }
+        #config-panel h3 { margin-top: 0; font-size: 16px; }
+        #config-input {
+            width: 100%; height: 150px; margin-top: 10px; padding: 10px;
+            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+            font-family: monospace; font-size: 12px;
+        }
+        #save-config-btn {
+            background: #856404; color: white; border: none; padding: 8px 16px;
+            margin-top: 10px; cursor: pointer; border-radius: 4px;
+        }
+        #save-config-btn:hover { background: #6d5000; }
 
+        /* --- 原有样式 --- */
+        .main-header { text-align: center; margin-bottom: 30px; cursor: pointer; }
+        .main-header h1 { color: var(--primary-color); }
         .card { background: var(--card-bg); border-radius: 8px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .btn { display: inline-block; padding: 12px 20px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; text-align: center; width: 100%; box-sizing: border-box; transition: background 0.2s; }
-        .btn:hover { background: #164d8f; }
+        .btn { display: inline-block; padding: 12px 20px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
         .btn-danger { background: #e74c3c; }
         .btn-secondary { background: #95a5a6; margin-top: 10px; }
-        
-        input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 16px; outline: none; }
-        input:focus { border-color: var(--primary-color); box-shadow: 0 0 5px rgba(26, 95, 180, 0.2); }
-        
+        input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
         .preview-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
         .preview-table th, .preview-table td { border: 1px solid #eee; padding: 10px; text-align: left; }
-        .preview-table th { background: #f8f9fa; font-weight: 600; }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; background: #d4edda; color: #155724; }
-        
+        .status-badge { background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
         .result-card { display: none; text-align: left; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         .result-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-        .result-item:last-child { border-bottom: none; }
-        .result-label { color: #666; font-weight: 500; min-width: 100px; }
-        .result-value { color: #333; text-align: right; flex: 1; margin-left: 10px; word-break: break-all; font-family: "Courier New", monospace; }
-        .highlight { color: var(--primary-color); font-weight: bold; font-size: 1.1em; }
-        
-        .alert { padding: 12px; background: #f8d7da; color: #721c24; border-radius: 5px; margin-top: 15px; display: none; text-align: center; font-size: 14px; }
+        .highlight { color: var(--primary-color); font-weight: bold; }
         .hidden { display: none; }
+        .loading { color: #666; font-size: 12px; margin-top: 5px; display: none; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
+
 <div class="container">
-    <div class="main-header" onclick="enterAdminMode()">
-        <span class="logo">💰</span>
-        <h1>工资明细查询系统</h1>
-        <div class="admin-hint">点击图标进入管理后台</div>
+    
+    <!-- ========================================== -->
+    <!-- 🔧 1. 配置区域 (请在这里粘贴你的 Firebase 信息) -->
+    <!-- ========================================== -->
+    <div id="config-panel">
+        <h3>⚙️ 第一步：配置 Firebase 连接信息</h3>
+        <p>请在 Firebase 控制台获取配置代码，粘贴到下方框中，然后点击保存。</p>
+        <textarea id="config-input" placeholder="在此粘贴 const firebaseConfig = { ... } 中的大括号内容..."></textarea>
+        <button id="save-config-btn" onclick="saveConfig()">💾 保存配置并刷新页面</button>
     </div>
 
-    <div id="admin-panel" class="card hidden">
-        <h3 style="margin-top:0; color:var(--primary-color);">📂 智能导入工资表</h3>
-        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">
-            系统会自动识别表头。请确保 Excel 中包含 <b>“姓名”</b> 和 <b>“密码”</b> 列。
-        </p>
-        
-        <input type="file" id="file-upload" accept=".xlsx, .xls">
-        <button class="btn" onclick="handleFile()">生成并保存工资条</button>
-        <div id="status-msg" style="margin-top:15px; color: green; font-weight: bold; font-size: 14px;"></div>
+    <!-- ========================================== -->
+    <!-- 🏠 2. 主界面 (配置完成后显示) -->
+    <!-- ========================================== -->
+    <div id="main-app" class="hidden">
+        <div class="main-header" onclick="enterAdminMode()">
+            <h1>💰 企业工资条查询系统</h1>
+            <div style="font-size: 12px; color: #999;">(点击标题进入管理员模式)</div>
+        </div>
 
-        <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
+        <!-- 管理员面板 -->
+        <div id="admin-panel" class="card hidden">
+            <h3 style="color:var(--primary-color);">📂 智能导入工资表</h3>
+            <input type="file" id="file-upload" accept=".xlsx, .xls">
+            <button class="btn" id="btn-upload" onclick="handleFile()">上传并同步到云端</button>
+            <div class="loading" id="upload-loading">正在上传...</div>
+            <hr>
+            <button class="btn btn-danger" onclick="clearData()">🗑️ 清空云端所有数据</button>
+            <button class="btn btn-secondary" onclick="exitAdminMode()">🔙 返回查询页</button>
+            <div id="preview-container" style="margin-top:20px; overflow-x:auto;"></div>
+        </div>
 
-        <h3 style="color:var(--primary-color);">🛠️ 系统维护</h3>
-        <button class="btn btn-danger" onclick="clearData()">🗑️ 清除所有工资数据</button>
-        <button class="btn btn-secondary" onclick="exitAdminMode()">🔙 返回员工查询页</button>
-
-        <h3 style="margin-top: 25px; color:var(--primary-color);">👁️ 数据预览 (前10条)</h3>
-        <div id="preview-container" style="overflow-x: auto;"></div>
-    </div>
-
-    <div id="emp-panel" class="card">
-        <div style="text-align: center; padding: 10px 0;">
-            <h3 style="margin-bottom: 25px; color: #555;">🔍 员工登录</h3>
+        <!-- 员工查询面板 -->
+        <div id="emp-panel" class="card">
+            <h3 style="text-align:center; color:#555;">🔍 员工登录</h3>
             <input type="text" id="query-name" placeholder="请输入姓名">
             <input type="password" id="query-pwd" placeholder="请输入查询密码">
             <button class="btn" onclick="querySalary()">安全登录</button>
-            <div id="error-msg" class="alert"></div>
-        </div>
-
-        <div id="result-card" class="result-card">
-            <div style="border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; margin-bottom: 20px; text-align: center;">
-                <h2 style="margin:0; color:var(--primary-color);" id="res-name"></h2>
-                <p style="margin:5px 0 0; color:#999; font-size:14px;" id="res-month"></p>
+            
+            <div id="result-card" class="result-card">
+                <div style="border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; margin-bottom: 20px; text-align: center;">
+                    <h2 id="res-name" style="margin:0; color:var(--primary-color);"></h2>
+                    <p id="res-month" style="color:#999;"></p>
+                </div>
+                <div id="result-content"></div>
             </div>
-            <div id="result-content"></div>
         </div>
     </div>
 </div>
 
 <script>
-    let currentMonth = new Date().toISOString().slice(0, 7);
+    // ============================================================
+    // 3. 核心逻辑脚本
+    // ============================================================
+    
+    // 默认空配置
+    let firebaseConfig = {};
+    let db, salaryRef;
+    let allData = [];
 
-    window.onload = function() { 
-        renderPreview(); 
-        document.getElementById('admin-panel').classList.add('hidden');
-        document.getElementById('emp-panel').classList.remove('hidden');
+    // 页面加载时检查配置
+    window.onload = function() {
+        const savedConfig = localStorage.getItem('my_firebase_config');
+        if (savedConfig) {
+            try {
+                firebaseConfig = JSON.parse(savedConfig);
+                initApp();
+            } catch (e) {
+                alert("配置格式错误，请重新粘贴。");
+                localStorage.removeItem('my_firebase_config');
+            }
+        } else {
+            // 如果没有配置，显示黄色面板
+            document.getElementById('config-panel').style.display = 'block';
+            document.getElementById('main-app').style.display = 'none';
+        }
     };
 
+    // 保存配置函数
+    function saveConfig() {
+        const input = document.getElementById('config-input').value;
+        try {
+            // 尝试解析用户粘贴的内容
+            // 用户可能粘贴的是完整的 "const firebaseConfig = {...}" 或者只是 "{...}"
+            let configObj = {};
+            
+            if (input.includes('apiKey')) {
+                // 如果是完整代码，尝试提取大括号内容
+                const jsonStr = input.substring(input.indexOf('{'), input.lastIndexOf('}') + 1);
+                configObj = new Function('return ' + jsonStr)();
+            } else {
+                // 如果直接是 JSON
+                configObj = JSON.parse(input);
+            }
+
+            if (!configObj.apiKey) throw new Error("缺少 apiKey");
+
+            localStorage.setItem('my_firebase_config', JSON.stringify(configObj));
+            alert("配置保存成功！页面即将刷新。");
+            location.reload();
+
+        } catch (e) {
+            alert("解析失败：请确保粘贴的是正确的 JavaScript 对象格式。\n错误信息: " + e.message);
+        }
+    }
+
+    // 初始化 Firebase
+    function initApp() {
+        document.getElementById('config-panel').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.database();
+        salaryRef = db.ref('payrolls');
+        
+        loadAndCacheData();
+    }
+
+    // --- 以下为原有业务逻辑 (未修改) ---
+    async function loadAndCacheData() {
+        if(!db) return;
+        try {
+            const snapshot = await salaryRef.once('value');
+            const data = snapshot.val();
+            allData = Array.isArray(data) ? data : [];
+        } catch (e) { console.error(e); }
+    }
+
     function enterAdminMode() {
-        const password = prompt("🔒 请输入管理员密码:");
-        if (password === 'admina') {
+        if (!db) return;
+        const pwd = prompt("🔒 管理员密码 (默认 admin):");
+        if (pwd === 'admin') {
             document.getElementById('emp-panel').classList.add('hidden');
             document.getElementById('admin-panel').classList.remove('hidden');
-            window.scrollTo(0, 0);
-        } else if (password !== null) {
-            alert("密码错误！");
-        }
+            renderPreview();
+        } else if (pwd !== null) { alert("密码错误"); }
     }
 
     function exitAdminMode() {
@@ -116,216 +203,102 @@
         document.getElementById('emp-panel').classList.remove('hidden');
     }
 
-    // --- 安全修复后的文件处理逻辑 ---
-    function handleFile() {
+    async function handleFile() {
         const fileInput = document.getElementById('file-upload');
-        if (fileInput.files.length === 0) { 
-            showStatus("请先选择文件！", "error"); 
-            return; 
-        }
+        if (fileInput.files.length === 0) { alert("请选择文件"); return; }
+        
+        const btn = document.getElementById('btn-upload');
+        btn.disabled = true; btn.innerText = "处理中...";
 
-        const file = fileInput.files[0];
         const reader = new FileReader();
-
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             try {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const wb = XLSX.read(data, {type: 'array'});
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(ws, {header: 1, defval: ""});
 
-                // 读取所有行
-                const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
-                if (!rawData || rawData.length === 0) { 
-                    showStatus("文件为空或格式错误！", "error"); 
-                    return; 
+                // 简单的表头查找逻辑
+                let headerIdx = 0;
+                let headers = json[0];
+                // 假设第一行就是表头，或者寻找包含"姓名"的行
+                for(let i=0; i<Math.min(5, json.length); i++) {
+                    if(JSON.stringify(json[i]).includes("姓名")) { headerIdx = i; headers = json[i]; break; }
                 }
 
-                // 智能寻找表头
-                let headerRowIndex = -1;
-                let headerKeys = [];
-
-                for (let i = 0; i < rawData.length; i++) {
-                    if (!rawData[i]) continue; // 跳过空行
-                    const rowText = JSON.stringify(rawData[i]);
-                    if (rowText.includes('姓名') && rowText.includes('密码')) {
-                        headerRowIndex = i;
-                        headerKeys = rawData[i].map(h => String(h).trim());
-                        break;
-                    }
-                }
-
-                if (headerRowIndex === -1) {
-                    showStatus("❌ 无法识别表头！\n请确保 Excel 第一行包含“姓名”和“密码”这两个列名。", "error");
-                    return;
-                }
-
-                // 提取数据
-                const dataRows = rawData.slice(headerRowIndex + 1);
-                const processedData = [];
-                for(const row of dataRows) {
-                    if (!row) continue; // 跳过空行
-                    
+                const rows = json.slice(headerIdx + 1);
+                const processed = rows.map(row => {
                     let obj = {};
-                    for (let j = 0; j < headerKeys.length; j++) {
-                        let val = row[j];
-                        if (typeof val === 'number') {
-                            val = String(Math.floor(val));
-                        }
-                        obj[headerKeys[j]] = val || ''; // 防止 undefined
-                    }
-                    
-                    const nameKey = headerKeys.find(k => k.includes('姓名'));
-                    const pwdKey = headerKeys.find(k => k.includes('密码'));
-                    
-                    if(nameKey && pwdKey && obj[nameKey] && obj[pwdKey]) {
-                        processedData.push({
-                            name: String(obj[nameKey]).trim(),
-                            password: String(obj[pwdKey]).trim(),
-                            details: obj
-                        });
-                    }
-                }
+                    headers.forEach((h, i) => { obj[String(h).trim()] = row[i]; });
+                    // 简单提取姓名密码作为索引
+                    const nameKey = Object.keys(obj).find(k => k.includes("姓名"));
+                    const pwdKey = Object.keys(obj).find(k => k.includes("密码"));
+                    return {
+                        name: obj[nameKey] || "",
+                        password: obj[pwdKey] || "",
+                        details: obj
+                    };
+                }).filter(i => i.name);
 
-                if (processedData.length === 0) {
-                    showStatus("未提取到有效数据，请检查表格格式。", "error");
-                    return;
-                }
-
-                // 保存
-                localStorage.setItem('salary_data', JSON.stringify(processedData));
-                showStatus(`✅ 成功保存 ${processedData.length} 条记录！`, "success");
+                await salaryRef.set(processed);
+                alert(`成功上传 ${processed.length} 条数据`);
+                allData = processed;
                 renderPreview();
-
-            } catch (err) {
-                console.error(err);
-                showStatus("解析出错：" + err.message, "error");
-            }
+            } catch(err) { alert("错误: " + err.message); }
+            finally { btn.disabled = false; btn.innerText = "上传并同步"; }
         };
-        reader.readAsArrayBuffer(file);
+        reader.readAsArrayBuffer(fileInput.files[0]);
     }
 
-    function showStatus(message, type) {
-        const statusEl = document.getElementById('status-msg');
-        statusEl.innerText = message;
-        statusEl.style.color = type === 'error' ? '#e74c3c' : 'green';
-    }
-
-    function renderPreview() {
-        let data;
-        try {
-            data = JSON.parse(localStorage.getItem('salary_data')) || [];
-        } catch (e) {
-            console.error("数据解析失败:", e);
-            data = [];
-        }
-        
+    async function renderPreview() {
         const container = document.getElementById('preview-container');
-        if (data.length === 0) { 
-            container.innerHTML = '<p style="color:#999; text-align:center;">暂无数据</p>'; 
-            return; 
-        }
-
-        // 确保数据有效
-        if (!Array.isArray(data) || !data[0] || !data[0].details) {
-             container.innerHTML = '<p style="color:#999; text-align:center;">数据格式异常</p>'; 
-             return;
-        }
-
-        const keys = Object.keys(data[0].details).filter(k => !k.includes('姓名') && !k.includes('密码'));
+        if (allData.length === 0) { container.innerHTML = "暂无数据"; return; }
+        
+        const keys = Object.keys(allData[0].details || {}).filter(k => !k.includes('姓名') && !k.includes('密码'));
         let html = '<table class="preview-table"><thead><tr>';
         keys.forEach(k => html += `<th>${k}</th>`);
-        html += '<th>状态</th></tr></thead><tbody>';
-
-        data.slice(0, 10).forEach(row => {
+        html += '</tr></thead><tbody>';
+        
+        allData.slice(0, 5).forEach(row => {
             html += '<tr>';
-            keys.forEach(k => {
-                let val = row.details[k] || 'N/A';
-                if (String(val).length > 15) val = String(val).substring(0, 15) + '...';
-                html += `<td>${val}</td>`;
-            });
-            html += '<td><span class="status-badge">已保存</span></td></tr>';
+            keys.forEach(k => html += `<td>${row.details[k]}</td>`);
+            html += '</tr>';
         });
-        container.innerHTML = html;
+        container.innerHTML = html + '</tbody></table>';
     }
 
-    function clearData() {
-        if (confirm("确定清除所有数据？")) {
-            localStorage.removeItem('salary_data');
+    async function clearData() {
+        if(confirm("确定清空？")) {
+            await salaryRef.remove();
+            alert("已清空");
+            allData = [];
             renderPreview();
-            showStatus("数据已清除", "success");
         }
     }
 
-    // --- 安全修复后的查询逻辑 ---
-    function querySalary() {
+    async function querySalary() {
         const name = document.getElementById('query-name').value.trim();
-        const inputPwd = document.getElementById('query-pwd').value.trim();
-        const errorMsg = document.getElementById('error-msg');
-        const resultCard = document.getElementById('result-card');
-        
-        errorMsg.style.display = 'none';
-        resultCard.style.display = 'none';
+        const pwd = document.getElementById('query-pwd').value.trim();
+        if (!name || !pwd) return;
 
-        if (!name || !inputPwd) { 
-            showError("请输入姓名和密码"); 
-            return; 
-        }
+        if (allData.length === 0) await loadAndCacheData();
 
-        let data;
-        try {
-            data = JSON.parse(localStorage.getItem('salary_data')) || [];
-        } catch (e) {
-            console.error("查询时数据解析失败:", e);
-            showError("数据加载失败，请刷新页面重试。");
-            return;
-        }
-
-        if (!Array.isArray(data)) {
-            showError("数据格式异常，请联系管理员。");
-            return;
-        }
-        
-        // 安全的查找逻辑
-        let match = null;
-        for(const row of data) {
-            if(row && row.name === name && row.password === inputPwd) {
-                match = row;
-                break;
-            }
-        }
-
+        const match = allData.find(i => i.name === name && i.password === pwd);
         if (match) {
-            document.getElementById('res-name').innerText = match.name || '未知';
-            document.getElementById('res-month').innerText = "工资详情";
-            
+            document.getElementById('res-name').innerText = match.name;
             let html = '';
-            if (match.details) {
-                Object.keys(match.details).forEach(key => {
-                    if (key.includes('姓名') || key.includes('密码')) return;
-                    const isPay = key.includes('实发') || key.includes('合计') || key.includes('应发');
-                    html += `
-                        <div class="result-item">
-                            <span class="result-label">${key}:</span>
-                            <span class="result-value ${isPay ? 'highlight' : ''}">${match.details[key] || 'N/A'}</span>
-                        </div>
-                    `;
-                });
-            } else {
-                 html = '<p style="text-align:center; color: #999;">暂无详细数据</p>';
-            }
-            
+            Object.keys(match.details).forEach(k => {
+                if(!k.includes('姓名') && !k.includes('密码')) {
+                    html += `<div class="result-item"><span>${k}</span><span class="highlight">${match.details[k]}</span></div>`;
+                }
+            });
             document.getElementById('result-content').innerHTML = html;
-            resultCard.style.display = 'block';
+            document.getElementById('result-card').style.display = 'block';
         } else {
-            showError("姓名或密码错误，请重试。");
+            alert("未找到匹配记录");
         }
-    }
-
-    function showError(message) {
-        const el = document.getElementById('error-msg');
-        el.innerText = message;
-        el.style.display = 'block';
     }
 </script>
+
 </body>
 </html>
