@@ -266,12 +266,55 @@
         reader.readAsArrayBuffer(file);
     }
 
-    function resetBtn() {
-        const btn = document.getElementById('btn-upload');
-        btn.disabled = false;
-        btn.innerText = "上传并同步到云端";
-        document.getElementById('upload-loading').style.display = 'none';
-    }
+function displaySalary(data) {
+    const container = document.getElementById('salaryDetails');
+    container.innerHTML = ''; // 清空旧数据
+
+    // 1. 将对象转换为数组以便排序
+    const items = Object.keys(data).map(key => {
+        return {
+            originalKey: key,
+            value: data[key]
+        };
+    });
+
+    // 2. 排序逻辑：提取下划线前的数字进行排序
+    items.sort((a, b) => {
+        // 获取下划线的位置
+        const indexA = a.originalKey.indexOf('_');
+        const indexB = b.originalKey.indexOf('_');
+
+        // 提取数字部分（例如 "10_公积金" -> 10）
+        // 如果没有下划线，默认放到最后（999）
+        const numA = indexA > -1 ? parseInt(a.originalKey.substring(0, indexA)) : 999;
+        const numB = indexB > -1 ? parseInt(b.originalKey.substring(0, indexB)) : 999;
+
+        return numA - numB; // 从小到大排序
+    });
+
+    // 3. 循环生成 HTML
+    items.forEach(item => {
+        // 获取真实的标签名（去掉前面的数字和下划线）
+        let label = item.originalKey;
+        const underlineIndex = item.originalKey.indexOf('_');
+        if (underlineIndex > -1) {
+            label = item.originalKey.substring(underlineIndex + 1);
+        }
+
+        // 判断是否是金额类（加粗蓝色）还是文本类（灰色）
+        // 这里简单判断：如果值是数字，就加粗；如果是文字，就普通显示
+        const isNumber = !isNaN(item.value) && item.value !== '';
+        const valueClass = isNumber ? 'amount' : 'text-value';
+
+        const row = document.createElement('div');
+        row.className = 'detail-row';
+        row.innerHTML = `
+            <div class="detail-label">${label}:</div>
+            <div class="detail-value ${valueClass}">${item.value}</div>
+        `;
+        container.appendChild(row);
+    });
+}
 
     async function renderPreview() {
         const container = document.getElementById('preview-container');
