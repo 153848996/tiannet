@@ -3,300 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>企业工资条查询系统 (云端版)</title>
+    <title>企业工资条查询系统 (最终版)</title>
     
-    <!-- 必须的库：Excel 解析库 (原代码缺失，已补全) -->
+    <!-- 引入 Excel 解析库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Firebase SDK (保持版本一致) -->
+    <!-- 引入 Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
-        /* --- 基础样式保持不变 --- */
-        :root { --primary-color: #1a5fb4; --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333; }
-        body { font-family: "Microsoft YaHei", sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        
-        /* --- 新增：配置区域样式 --- */
-        #config-panel {
-            background: #fff3cd; border: 1px solid #ffeeba; color: #856404;
-            padding: 20px; border-radius: 8px; margin-bottom: 20px;
-            font-family: monospace; font-size: 13px;
-        }
-        #config-panel h3 { margin-top: 0; font-size: 16px; }
-        #config-input {
-            width: 100%; height: 150px; margin-top: 10px; padding: 10px;
-            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
-            font-family: monospace; font-size: 12px;
-        }
-        #save-config-btn {
-            background: #856404; color: white; border: none; padding: 8px 16px;
-            margin-top: 10px; cursor: pointer; border-radius: 4px;
-        }
-        #save-config-btn:hover { background: #6d5000; }
-
-        /* --- 原有样式 --- */
-        .main-header { text-align: center; margin-bottom: 30px; cursor: pointer; }
-        .main-header h1 { color: var(--primary-color); }
-        .card { background: var(--card-bg); border-radius: 8px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .btn { display: inline-block; padding: 12px 20px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        .btn-danger { background: #e74c3c; }
-        .btn-secondary { background: #95a5a6; margin-top: 10px; }
-        input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        .preview-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-        .preview-table th, .preview-table td { border: 1px solid #eee; padding: 10px; text-align: left; }
-        .status-badge { background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .result-card { display: none; text-align: left; animation: fadeIn 0.3s; }
-        .result-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-        .highlight { color: var(--primary-color); font-weight: bold; }
-        .hidden { display: none; }
-        .loading { color: #666; font-size: 12px; margin-top: 5px; display: none; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { text-align: center; color: #2c3e50; }
+        .section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { background-color: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 15px; transition: background 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button.secondary { background-color: #6c757d; }
+        button.secondary:hover { background-color: #545b62; }
+        .result { margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 6px; display: none; }
+        .loading { text-align: center; color: #666; margin-top: 10px; display: none; }
+        .admin-login { display: flex; gap: 10px; }
+        .admin-login input { margin-top: 0; }
+        .admin-login button { width: auto; margin-top: 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    
-    <!-- ========================================== -->
-    <!-- 🔧 1. 配置区域 (请在这里粘贴你的 Firebase 信息) -->
-    <!-- ========================================== -->
-    <div id="config-panel">
-        <h3>⚙️ 第一步：配置 Firebase 连接信息</h3>
-        <p>请在 Firebase 控制台获取配置代码，粘贴到下方框中，然后点击保存。</p>
-        <textarea id="config-input" placeholder="在此粘贴 const firebaseConfig = { ... } 中的大括号内容..."></textarea>
-        <button id="save-config-btn" onclick="saveConfig()">💾 保存配置并刷新页面</button>
+    <h1>💰 工资条查询系统</h1>
+
+    <!-- 查询区域 -->
+    <div class="section">
+        <h2>员工查询</h2>
+        <label for="searchName">请输入您的姓名：</label>
+        <input type="text" id="searchName" placeholder="例如：张三">
+        <button onclick="searchSalary()">查询工资</button>
+        
+        <div id="loading" class="loading">查询中...</div>
+        <div id="result" class="result"></div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 🏠 2. 主界面 (配置完成后显示) -->
-    <!-- ========================================== -->
-    <div id="main-app" class="hidden">
-        <div class="main-header" onclick="enterAdminMode()">
-            <h1>💰 企业工资条查询系统</h1>
-            <div style="font-size: 12px; color: #999;">(点击标题进入管理员模式)</div>
+    <!-- 管理员区域 -->
+    <div class="section" style="border:none;">
+        <h2>管理员导入</h2>
+        <div class="admin-login">
+            <input type="text" id="adminPassword" placeholder="请输入管理员密码">
+            <button onclick="checkAdmin()" style="width: 120px;">登录</button>
         </div>
 
-        <!-- 管理员面板 -->
-        <div id="admin-panel" class="card hidden">
-            <h3 style="color:var(--primary-color);">📂 智能导入工资表</h3>
-            <input type="file" id="file-upload" accept=".xlsx, .xls">
-            <button class="btn" id="btn-upload" onclick="handleFile()">上传并同步到云端</button>
-            <div class="loading" id="upload-loading">正在上传...</div>
-            <hr>
-            <button class="btn btn-danger" onclick="clearData()">🗑️ 清空云端所有数据</button>
-            <button class="btn btn-secondary" onclick="exitAdminMode()">🔙 返回查询页</button>
-            <div id="preview-container" style="margin-top:20px; overflow-x:auto;"></div>
-        </div>
-
-        <!-- 员工查询面板 -->
-        <div id="emp-panel" class="card">
-            <h3 style="text-align:center; color:#555;">🔍 员工登录</h3>
-            <input type="text" id="query-name" placeholder="请输入姓名">
-            <input type="password" id="query-pwd" placeholder="请输入查询密码">
-            <button class="btn" onclick="querySalary()">安全登录</button>
-            
-            <div id="result-card" class="result-card">
-                <div style="border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; margin-bottom: 20px; text-align: center;">
-                    <h2 id="res-name" style="margin:0; color:var(--primary-color);"></h2>
-                    <p id="res-month" style="color:#999;"></p>
-                </div>
-                <div id="result-content"></div>
-            </div>
+        <div id="adminPanel" style="display:none; margin-top:20px;">
+            <label for="excelFile">选择 Excel 文件 (.xlsx)：</label>
+            <input type="file" id="excelFile" accept=".xlsx, .xls">
+            <button onclick="uploadExcel()" style="background-color: #28a745;">🚀 上传并导入数据</button>
+            <p style="font-size: 12px; color: #888; margin-top: 10px;">* 表头请保持规范，不要包含特殊符号</p>
         </div>
     </div>
 </div>
 
 <script>
-    // ============================================================
-    // 3. 核心逻辑脚本
-    // ============================================================
-    
-    // 默认空配置
-    let firebaseConfig = {};
-    let db, salaryRef;
-    let allData = [];
-
-    // 页面加载时检查配置
-    window.onload = function() {
-        const savedConfig = localStorage.getItem('my_firebase_config');
-        if (savedConfig) {
-            try {
-                firebaseConfig = JSON.parse(savedConfig);
-                initApp();
-            } catch (e) {
-                alert("配置格式错误，请重新粘贴。");
-                localStorage.removeItem('my_firebase_config');
-            }
-        } else {
-            // 如果没有配置，显示黄色面板
-            document.getElementById('config-panel').style.display = 'block';
-            document.getElementById('main-app').style.display = 'none';
-        }
-    };
-
-    // 保存配置函数
-    function saveConfig() {
-        const input = document.getElementById('config-input').value;
-        try {
-            // 尝试解析用户粘贴的内容
-            // 用户可能粘贴的是完整的 "const firebaseConfig = {...}" 或者只是 "{...}"
-            let configObj = {};
-            
-            if (input.includes('apiKey')) {
-                // 如果是完整代码，尝试提取大括号内容
-                const jsonStr = input.substring(input.indexOf('{'), input.lastIndexOf('}') + 1);
-                configObj = new Function('return ' + jsonStr)();
-            } else {
-                // 如果直接是 JSON
-                configObj = JSON.parse(input);
-            }
-
-            if (!configObj.apiKey) throw new Error("缺少 apiKey");
-
-            localStorage.setItem('my_firebase_config', JSON.stringify(configObj));
-            alert("配置保存成功！页面即将刷新。");
-            location.reload();
-
-        } catch (e) {
-            alert("解析失败：请确保粘贴的是正确的 JavaScript 对象格式。\n错误信息: " + e.message);
-        }
-    }
+    // ==========================================
+    // ⚙️ 第一步：在此处粘贴你的 Firebase 配置信息
+    // ==========================================
+      const firebaseConfig = {
+    apiKey: "AIzaSyC7T00wwRp33Q8RKzJxwEf7ZgFpnVs-qGw",
+    authDomain: "tian-server.firebaseapp.com",
+    databaseURL: "https://tian-server-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "tian-server",
+    storageBucket: "tian-server.firebasestorage.app",
+    messagingSenderId: "543764460133",
+    appId: "1:543764460133:web:7ea8d1b0687d3571458c8c",
+    measurementId: "G-3RPSJ3Q6GW"
+  };
 
     // 初始化 Firebase
-    function initApp() {
-        document.getElementById('config-panel').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        db = firebase.database();
-        salaryRef = db.ref('payrolls');
-        
-        loadAndCacheData();
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
     }
+    const database = firebase.database();
 
-    // --- 以下为原有业务逻辑 (未修改) ---
-    async function loadAndCacheData() {
-        if(!db) return;
+    // ==========================================
+    // 🔍 查询功能
+    // ==========================================
+    async function searchSalary() {
+        const name = document.getElementById('searchName').value.trim();
+        const resultDiv = document.getElementById('result');
+        const loadingDiv = document.getElementById('loading');
+
+        if (!name) {
+            alert("请输入姓名");
+            return;
+        }
+
+        resultDiv.style.display = 'none';
+        loadingDiv.style.display = 'block';
+
         try {
-            const snapshot = await salaryRef.once('value');
+            // 这里的逻辑是：去数据库里找 "payrolls" 节点下，名字等于输入值的数据
+            // 注意：Firebase Realtime Database 的查询需要建立索引，或者全量下载过滤
+            // 为了简单起见，这里采用全量下载后在本地过滤（适合数据量不大的情况）
+            
+            const snapshot = await database.ref('payrolls').once('value');
             const data = snapshot.val();
-            allData = Array.isArray(data) ? data : [];
-        } catch (e) { console.error(e); }
-    }
+            
+            loadingDiv.style.display = 'none';
 
-    function enterAdminMode() {
-        if (!db) return;
-        const pwd = prompt("🔒 管理员密码 (默认 admin):");
-        if (pwd === 'admin') {
-            document.getElementById('emp-panel').classList.add('hidden');
-            document.getElementById('admin-panel').classList.remove('hidden');
-            renderPreview();
-        } else if (pwd !== null) { alert("密码错误"); }
-    }
+            if (!data) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = "<strong>提示：</strong> 数据库中暂无数据，请联系管理员上传。";
+                resultDiv.style.background = "#fff3cd";
+                return;
+            }
 
-    function exitAdminMode() {
-        document.getElementById('admin-panel').classList.add('hidden');
-        document.getElementById('emp-panel').classList.remove('hidden');
-    }
-
-    async function handleFile() {
-        const fileInput = document.getElementById('file-upload');
-        if (fileInput.files.length === 0) { alert("请选择文件"); return; }
-        
-        const btn = document.getElementById('btn-upload');
-        btn.disabled = true; btn.innerText = "处理中...";
-
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const wb = XLSX.read(data, {type: 'array'});
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                const json = XLSX.utils.sheet_to_json(ws, {header: 1, defval: ""});
-
-                // 简单的表头查找逻辑
-                let headerIdx = 0;
-                let headers = json[0];
-                // 假设第一行就是表头，或者寻找包含"姓名"的行
-                for(let i=0; i<Math.min(5, json.length); i++) {
-                    if(JSON.stringify(json[i]).includes("姓名")) { headerIdx = i; headers = json[i]; break; }
-                }
-
-                const rows = json.slice(headerIdx + 1);
-                const processed = rows.map(row => {
-                    let obj = {};
-                    headers.forEach((h, i) => { obj[String(h).trim()] = row[i]; });
-                    // 简单提取姓名密码作为索引
-                    const nameKey = Object.keys(obj).find(k => k.includes("姓名"));
-                    const pwdKey = Object.keys(obj).find(k => k.includes("密码"));
-                    return {
-                        name: obj[nameKey] || "",
-                        password: obj[pwdKey] || "",
-                        details: obj
-                    };
-                }).filter(i => i.name);
-
-                await salaryRef.set(processed);
-                alert(`成功上传 ${processed.length} 条数据`);
-                allData = processed;
-                renderPreview();
-            } catch(err) { alert("错误: " + err.message); }
-            finally { btn.disabled = false; btn.innerText = "上传并同步"; }
-        };
-        reader.readAsArrayBuffer(fileInput.files[0]);
-    }
-
-    async function renderPreview() {
-        const container = document.getElementById('preview-container');
-        if (allData.length === 0) { container.innerHTML = "暂无数据"; return; }
-        
-        const keys = Object.keys(allData[0].details || {}).filter(k => !k.includes('姓名') && !k.includes('密码'));
-        let html = '<table class="preview-table"><thead><tr>';
-        keys.forEach(k => html += `<th>${k}</th>`);
-        html += '</tr></thead><tbody>';
-        
-        allData.slice(0, 5).forEach(row => {
-            html += '<tr>';
-            keys.forEach(k => html += `<td>${row.details[k]}</td>`);
-            html += '</tr>';
-        });
-        container.innerHTML = html + '</tbody></table>';
-    }
-
-    async function clearData() {
-        if(confirm("确定清空？")) {
-            await salaryRef.remove();
-            alert("已清空");
-            allData = [];
-            renderPreview();
-        }
-    }
-
-    async function querySalary() {
-        const name = document.getElementById('query-name').value.trim();
-        const pwd = document.getElementById('query-pwd').value.trim();
-        if (!name || !pwd) return;
-
-        if (allData.length === 0) await loadAndCacheData();
-
-        const match = allData.find(i => i.name === name && i.password === pwd);
-        if (match) {
-            document.getElementById('res-name').innerText = match.name;
-            let html = '';
-            Object.keys(match.details).forEach(k => {
-                if(!k.includes('姓名') && !k.includes('密码')) {
-                    html += `<div class="result-item"><span>${k}</span><span class="highlight">${match.details[k]}</span></div>`;
+            // 遍历查找匹配的名字
+            let found = false;
+            let html = `<h3>👤 ${name} 的工资条</h3><table style="width:100%; border-collapse: collapse; margin-top:10px;">`;
+            
+            Object.keys(data).forEach(key => {
+                const item = data[key];
+                // 假设 Excel 第一列或者某个字段是 "姓名"
+                // 这里做一个模糊匹配或者精确匹配
+                if (item['姓名'] === name || item['名字'] === name) {
+                    found = true;
+                    // 遍历该行的所有字段
+                    for (const [k, v] of Object.entries(item)) {
+                        if (k !== '姓名' && k !== '名字') { // 避免重复显示名字
+                            html += `<tr>
+                                <td style="padding:8px; border-bottom:1px solid #ddd; color:#555;">${k}</td>
+                                <td style="padding:8px; border-bottom:1px solid #ddd; text-align:right; font-weight:bold;">${v}</td>
+                            </tr>`;
+                        }
+                    }
                 }
             });
-            document.getElementById('result-content').innerHTML = html;
-            document.getElementById('result-card').style.display = 'block';
-        } else {
-            alert("未找到匹配记录");
+            html += `</table>`;
+
+            if (found) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = html;
+                resultDiv.style.background = "#d4edda"; // 成功绿色
+            } else {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = "<strong>未找到：</strong> 没有找到该姓名的工资记录。";
+                resultDiv.style.background = "#f8d7da"; // 失败红色
+            }
+
+        } catch (error) {
+            loadingDiv.style.display = 'none';
+            console.error(error);
+            alert("查询出错：" + error.message);
         }
+    }
+
+    // ==========================================
+    // 🔒 管理员功能
+    // ==========================================
+    function checkAdmin() {
+        const pwd = document.getElementById('adminPassword').value;
+        // 简单的前端密码验证 (生产环境建议用 Firebase Auth)
+        if (pwd === '123456') { 
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('adminPassword').value = ''; // 清空密码
+        } else {
+            alert("密码错误！");
+        }
+    }
+
+    function uploadExcel() {
+        const fileInput = document.getElementById('excelFile');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert("请选择一个 Excel 文件");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            
+            // 假设读取第一个工作表
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // 转换为 JSON 数组，每一行是一个对象
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            if (jsonData.length === 0) {
+                alert("文件是空的，或者格式不正确");
+                return;
+            }
+
+            // 数据清洗：Firebase 不允许 key 包含 . $ # [ ] /
+            // 我们遍历所有数据，确保 key 是安全的
+            const cleanData = {};
+            
+            jsonData.forEach((row, index) => {
+                // 使用 index 或者 姓名+随机数 作为 Firebase 的 Key
+                // 这里为了简单，直接存入一个大的列表结构
+                const rowKey = 'emp_' + index; 
+                cleanData[rowKey] = {};
+
+                for (let key in row) {
+                    // 替换非法字符
+                    let safeKey = key.toString().replace(/\.|\$|\#|\[|\]|\//g, '_');
+                    cleanData[rowKey][safeKey] = row[key];
+                }
+            });
+
+            // 上传到 Firebase
+            // 注意：这里使用 set 会覆盖原有数据，使用 update 会合并。
+            // 既然是工资条导入，通常是覆盖当月的，所以用 set 比较合适。
+            // 如果你想保留历史记录，应该用 push 或者 update 到一个带日期的节点下。
+            
+            const confirmUpload = confirm(`检测到 ${jsonData.length} 条数据。确认要上传并覆盖当前数据吗？`);
+            if (confirmUpload) {
+                database.ref('payrolls').set(cleanData)
+                .then(() => {
+                    alert("上传成功！");
+                })
+                .catch((error) => {
+                    alert("上传失败：" + error.message);
+                    console.error(error);
+                });
+            }
+        };
+        reader.readAsArrayBuffer(file);
     }
 </script>
 
