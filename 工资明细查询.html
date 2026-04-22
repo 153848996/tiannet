@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>企业工资条查询系统 (云端版 - 稳定版)</title>
+    <title>工资明细查询系统 (云端版)</title>
     
     <!-- 1. 引入 Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -51,7 +51,7 @@
         <div class="main-header" onclick="enterAdminMode()">
             <span class="logo">💰</span>
             <h1>企业工资条查询系统</h1>
-            <div class="admin-hint">点击图标进入管理后台</div>
+            <div class="admin-hint"></div>
         </div>
 
         <!-- 管理员面板 -->
@@ -153,14 +153,14 @@
 
     function enterAdminMode() {
         if (!db) return;
-        const password = prompt("🔒 请输入管理员密码 (默认 admin):");
-        if (password === 'admin') {
+        const password = prompt("🔒 请输入管理员密码:");
+        if (password === 'admina') {
             document.getElementById('emp-panel').classList.add('hidden');
             document.getElementById('admin-panel').classList.remove('hidden');
             window.scrollTo(0, 0);
             renderPreview();
         } else if (password !== null) {
-            alert("密码错误！");
+            alert("密码错误！请联系VX：i153848996获取");
         }
     }
 
