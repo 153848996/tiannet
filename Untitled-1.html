@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>差旅费报销单</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: SimSun, serif;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            padding-left: 220px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 290mm;
+            table-layout: fixed;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 5px;
+            height: 30px;
+        }
+
+        tr:nth-child(1),
+        tr:nth-child(15) {
+            border: none;
+        }
+
+        .biaoti {
+            font-family: Microsoft YaHei;
+            font-size: 33px;
+            font-weight: bold;
+            border-bottom: none;
+            border: 1px solid transparent;
+            color: #020202;
+            text-decoration: underline double;
+            text-underline-offset: 6px;
+            text-decoration-thickness: 2px;
+            padding-bottom: 5px;
+        }
+
+        .zytouming {
+            font-family: SimSun;
+            font-size: 18px;
+            font-weight: normal;
+            border-left: 1px solid transparent;
+            border-right: 1px solid transparent;
+        }
+
+        .bktouming {
+            font-family: SimSun;
+            font-size: 16px;
+            font-weight: normal;
+            border: 1px solid transparent;
+            outline: none;
+        }
+
+        .wzzsduiqi {
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .ycsj::-webkit-outer-spin-button,
+        .ycsj::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .bjnp {
+            background-color: lightgray;
+        }
+
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                box-sizing: border-box;
+                padding-left: 3cm;
+            }
+
+            .bjnp {
+                background-color: transparent;
+            }
+
+            .ycsj {
+                -moz-appearance: textfield;
+            }
+
+            .comment,
+            .bottom-tip,
+            .left-tip {
+                display: none !important;
+            }
+            
+            button,
+            a[href] {
+                display: none !important;
+            }
+        }
+
+        .bottom-tip {
+            position: fixed;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            background-color: #f0f0f0;
+            padding: 10px;
+            width: 200px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .left-tip {
+            position: fixed;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            background-color: #f8f9fa;
+            padding: 15px;
+            width: 180px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+            z-index: 1000;
+        }
+        
+        .left-tip-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+    </style>
+    <script>
+        function convertToChineseUppercase(num) {
+            if(isNaN(num) || num === null || num === undefined) return '零圆整';
+            
+            const fraction = ['角', '分'];
+            const digit = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+            const unit = [['圆', '万', '亿'], ['', '拾', '佰', '仟']];
+            let head = num < 0 ? '欠' : '';
+            num = Math.abs(num);
+
+            let s = '';
+
+            for (let i = 0; i < fraction.length; i++) {
+                s += (digit[Math.floor(num * 10 * Math.pow(10, i)) % 10] + fraction[i]).replace(/零./, '');
+            }
+
+            s = s || '整';
+            num = Math.floor(num);
+
+            for (let i = 0; i < unit[0].length && num > 0; i++) {
+                let p = '';
+
+                for (let j = 0; j < unit[1].length && num > 0; j++) {
+                    p = digit[num % 10] + unit[1][j] + p;
+                    num = Math.floor(num / 10);
+                }
+
+                s = p.replace(/(零.)*零$/, '').replace(/^$/, '零') + unit[0][i] + s;
+            }
+
+            return head + s.replace(/(零.)*零圆/, '圆').replace(/(零.)+/g, '零').replace(/^整$/, '零圆整');
+        }
+
+        function calculateSum() {
+            const rows = [
+                {
+                    ids: ['hc1', 'qc1', 'fj1', 'lc1', 'zs1', 'snje1', 'hsje1'], sumId: 'sum1'
+                },
+                {
+                    ids: ['hc2', 'qc2', 'fj2', 'lc2', 'zs2', 'snje2', 'hsje2'], sumId: 'sum2'
+                },
+                {
+                    ids: ['hc3', 'qc3', 'fj3', 'lc3', 'zs3', 'snje3', 'hsje3'], sumId: 'sum3'
+                },
+                {
+                    ids: ['hc4', 'qc4', 'fj4', 'lc4', 'zs4', 'snje4', 'hsje4'], sumId: 'sum4'
+                },
+                {
+                    ids: ['hc1', 'hc2', 'hc3', 'hc4'], sumId: 'hc5'
+                },
+                {
+                    ids: ['qc1', 'qc2', 'qc3', 'qc4'], sumId: 'qc5'
+                },
+                {
+                    ids: ['fj1', 'fj2', 'fj3', 'fj4'], sumId: 'fj5'
+                },
+                {
+                    ids: ['lc1', 'lc2', 'lc3', 'lc4'], sumId: 'lc5'
+                },
+                {
+                    ids: ['zs1', 'zs2', 'zs3', 'zs4'], sumId: 'zs5'
+                },
+                {
+                    ids: ['snje1', 'snje2', 'snje3', 'snje4'], sumId: 'snje5'
+                },
+                {
+                    ids: ['hsje1', 'hsje2', 'hsje3', 'hsje4'], sumId: 'hsje5'
+                },
+                {
+                    ids: ['hc1', 'qc1', 'fj1', 'lc1', 'zs1', 'snje1', 'hsje1', 'hc2', 'qc2', 'fj2', 'lc2', 'zs2', 'snje2', 'hsje2', 'hc3', 'qc3', 'fj3', 'lc3', 'zs3', 'snje3', 'hsje3', 'hc4', 'qc4', 'fj4', 'lc4', 'zs4', 'snje4', 'hsje4'], sumId: 'sum5'
+                },
+                {
+                    ids: ['hc1', 'qc1', 'fj1', 'lc1', 'zs1', 'snje1', 'hsje1', 'hc2', 'qc2', 'fj2', 'lc2', 'zs2', 'snje2', 'hsje2', 'hc3', 'qc3', 'fj3', 'lc3', 'zs3', 'snje3', 'hsje3', 'hc4', 'qc4', 'fj4', 'lc4', 'zs4', 'snje4', 'hsje4'], sumId: 'sum6'
+                },
+            ];
+
+            rows.forEach(row => {
+                let sum = 0;
+                
+                for(const id of row.ids) {
+                    const element = document.getElementById(id);
+                    if(element) {
+                        const value = parseFloat(element.value) || 0;
+                        sum += value;
+                    }
+                }
+
+                const sumElement = document.getElementById(row.sumId);
+                if(sumElement) {
+                    sumElement.textContent = sum.toFixed(2);
+                }
+            });
+            
+            const sum6Element = document.getElementById('sum6');
+            if(sum6Element) {
+                const sum6Value = parseFloat(sum6Element.textContent) || 0;
+                const chineseUppercase = convertToChineseUppercase(sum6Value);
+                const sum7Element = document.getElementById('sum7');
+                if(sum7Element) {
+                    sum7Element.textContent = chineseUppercase;
+                }
+            }
+        }
+
+        function setupEventListeners() {
+            const inputs = document.querySelectorAll('.ycsj');
+
+            for(const input of inputs) {
+                input.addEventListener('input', calculateSum);
+            }
+        }
+        
+        function updateDateDifference() {
+            var startDateInput = document.getElementById("start_date");
+            var endDateInput = document.getElementById("end_date");
+            var resultParagraph = document.getElementById("result");
+
+            if (startDateInput && endDateInput && resultParagraph) {
+                if (startDateInput.value && endDateInput.value) {
+                    var startDate = new Date(startDateInput.value);
+                    var endDate = new Date(endDateInput.value);
+
+                    var timeDifference = endDate - startDate;
+                    var daysDifference = Math.floor(timeDifference / (1000 * 60 * 60 * 24) + 1);
+                    resultParagraph.textContent = "共计：" + daysDifference + " 天";
+                } else {
+                    resultParagraph.textContent = "共计：";
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div class="left-tip">
+        <div class="left-tip-title">使用提示</div>
+        <p>温馨提示：如表格显示不全，可按住键盘左下角的ctrl并滚动鼠标中间的滚轮就可以完整显示完整</p>
+        <p>重要提示：不要在微信中直接打开本页面，会无法打印，复制地址到网页中打开即可正常打印</p>
+        <p>填写完成后，点击右侧「打印/另存」按钮导出</p>
+    </div>
+
+    <table>
+        <tr>
+            <td border="12" align="center" colspan="17" height="80" class="biaoti" onclick="window.print();">&nbsp;&nbsp;&nbsp;&nbsp;差&nbsp;&nbsp;旅&nbsp;&nbsp;费&nbsp;&nbsp;报&nbsp;&nbsp;销&nbsp;&nbsp;补&nbsp;&nbsp;助&nbsp;&nbsp;单&nbsp;&nbsp;&nbsp;&nbsp;</td>
+        </tr>
+        <tr>
+            <td colspan="2" align="left" class="zytouming">单位：</td>
+            <td colspan="5" align="left" class="zytouming" contenteditable="true">
+                <span>输入单位名</span>
+            </td>
+            <td colspan="5" align="center" class="zytouming">
+                <input type="date" class="bktouming">
+            </td>
+            <td colspan="2" align="right" class="zytouming">附单据</td>
+            <td class="zytouming" contenteditable="true"></td>
+            <td colspan="2" class="zytouming">张</td>
+        </tr>
+        <tr align="center">
+            <td colspan="2" class="bjnp">姓名：</td>
+            <td colspan="3" contenteditable="true"></td>
+            <td colspan="2" class="bjnp">同行人数</td>
+            <td contenteditable="true"></td>
+            <td colspan="2" class="bjnp">出差目的地</td>
+            <td colspan="2" contenteditable="true"></td>
+            <td colspan="2" class="bjnp">出差事由</td>
+            <td colspan="3" contenteditable="true"></td>
+        </tr>
+        <tr align="center" class="bjnp">
+            <td colspan="2">日期</td>
+            <td rowspan="2" colspan="2">出发地</td>
+            <td rowspan="2" colspan="2">到达地</td>
+            <td colspan="4">交通费</td>
+            <td rowspan="2">住宿</td>
+            <td colspan="2">市内交通</td>
+            <td colspan="2">伙食补助</td> 
+            <td rowspan="2" colspan="2">小计</td>
+        </tr>
+        <tr align="center" class="bjnp">
+            <td>月</td>
+            <td>日</td>
+            <td>火车</td>
+            <td>汽车</td>
+            <td>飞机</td>
+            <td>轮船</td>
+            <td>天数</td>
+            <td>金额</td>
+            <td>天数</td>
+            <td>金额</td>
+        </tr>
+        <tr align="center">
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td style="width: 30mm; ">
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hc1">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="qc1">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="fj1">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="lc1">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="zs1">
+            </td>
+            <td contenteditable="true" id="snts1"></td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje1">
+            </td>
+            <td contenteditable="true" id="hsts1"></td> 
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje1">
+            </td>
+            <td id="sum1" class="bjnp" colspan="2"></td>
+        </tr>
+
+        <tr align="center">
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td style="width: 30mm;">
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hc2">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="qc2">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="fj2">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="lc2">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="zs2">
+            </td>
+            <td contenteditable="true" id="snts2"></td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje2">
+            </td>
+            <td contenteditable="true" id="hsts2"></td> 
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje2">
+            </td>
+            <td id="sum2" class="bjnp" colspan="2"></td>
+        </tr>
+        <tr align="center">
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td style="width: 30mm;">
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hc3">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="qc3">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="fj3">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="lc3">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="zs3">
+            </td>
+            <td contenteditable="true" id="snts3"></td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje3">
+            </td>
+            <td contenteditable="true" id="hsts3"></td> 
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje3">
+            </td>
+            <td id="sum3" class="bjnp" colspan="2"></td>
+        </tr>
+
+        <tr align="center">
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td colspan="2" contenteditable="true"></td>
+            <td style="width: 30mm;">
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hc4">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="qc4">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="fj4">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="lc4">
+            </td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="zs4">
+            </td>
+            <td contenteditable="true" id="snts4"></td>
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="snje4">
+            </td>
+            <td contenteditable="true" id="hsts4"></td> 
+            <td>
+                <input type="number" class="ycsj" style="width: 55px;height: 40px;font-size: 16px;border: 1px solid transparent;box-sizing: border-box;" id="hsje4">
+            </td>
+            <td id="sum4" class="bjnp" colspan="2"></td>
+        </tr>
+
+        <tr align="center" class="bjnp">
+            <td colspan="6">合计：</td>
+            <td id="hc5"></td>
+            <td id="qc5"></td>
+            <td id="fj5"></td>
+            <td id="lc5"></td>
+            <td id="zs5"></td>
+            <td id="snts5"></td>
+            <td id="snje5"></td>
+            <td id="hsts5"></td> 
+            <td id="hsje5"></td>
+            <td id="sum5" colspan="2"></td>
+        </tr>
+
+        <tr align="center">
+            <td colspan="3" class="bjnp">说             明</td>
+            <td colspan="14" contenteditable="true"></td>
+        </tr>
+
+        <tr align="center" class="bjnp">
+            <td colspan="3">出差日数</td>
+            <td colspan="9">
+                <label for="start_date">自</label>
+                <input type="date" id="start_date" style="width: 35mm;height: 25px;font-size: 16px;border: 1px solid transparent">
+                <label for="end_date">至</label>
+                <input type="date" id="end_date" style="width: 45mm;height: 25px;font-size: 16px;border: 1px solid transparent">
+            </td>
+            <td colspan="5">
+                <p id="result">共计：</p>
+            </td>
+        </tr>
+
+        <tr align="center" class="bjnp">
+            <td colspan="3" class="bjnp">差旅总额</td>
+            <td colspan="4" align="right" style="border-right: 1px solid transparent; ">人民币（大写）：</td>
+            <td colspan="5" align="left" style="border-left: 1px solid transparent; " id="sum7">0.00</td>
+            <td colspan="2" align="right" style="border-right: 1px solid transparent; ">小写：￥</td>
+            <td colspan="3" align="left" style="border-left: 1px solid transparent; " id="sum6">0.00</td>
+        </tr>
+
+        <tr class="wzzsduiqi" style="height: 85px;">
+            <td colspan="5" rowspan="2" class="bjnp">领导审批</td>
+            <td colspan="4" rowspan="2" class="bjnp">财务负责人</td>
+            <td colspan="4" rowspan="2" class="bjnp">分管领导</td>
+            <td colspan="4" rowspan="2" class="bjnp">部门负责人</td> 
+        </tr>
+
+        <tr></tr>
+
+        <tr>
+            <td align="right" colspan="2" height="30" style="border: 1px solid transparent" class="bjnp">出差人：</td>
+            <td align="left" colspan="14" height="30" style="border: 1px solid transparent" contenteditable="true" ></td> 
+        </tr>
+    </table>
+
+    <div class="bottom-tip">
+        <button onclick="window.print()">打印/另存</button><br>
+        <div>
+            通化地区<br>
+			出差交通补助80元/人/天<br>
+			伙食补助50元/人/天<br>
+			下乡补助25元/人/天<br>
+			吉林省内通化以外地区<br>
+			交通补助80元/人/天<br>
+			伙食补助100元/人/天
+        </div>
+		<br>
+		<div>
+            1.吉林省省直机关工作人员赴省外差旅住宿费标准明细表
+        </div>
+        <div>
+            (表格发布网站)
+        </div>
+        <br>
+        <div>
+            2.吉林省省直机关差旅费管理办法
+        </div>
+        <br>
+        <div>
+            3.吉林省省直机关差旅费管理办法有关问题的解答 吉财行〔2015〕864号
+        </div>
+        <br>
+        <div>
+            4.吉林省省直机关差旅费、会议费、培训费有关问题的解答 吉财党群〔2019〕162号
+        </div>
+        <br>
+        <div>
+            5.关于印发《吉林省省直机关差旅费管理办法有关问题的解答》的通知 吉财行〔2015〕864号
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后执行初始化
+        window.onload = function() {
+            setupEventListeners();
+            
+            var startDateInput = document.getElementById("start_date");
+            var endDateInput = document.getElementById("end_date");
+
+            if (startDateInput) {
+                startDateInput.addEventListener("input", updateDateDifference);
+            }
+            if (endDateInput) {
+                endDateInput.addEventListener("input", updateDateDifference);
+            }
+            updateDateDifference();
+            
+            // 初始计算一次总和
+            calculateSum();
+        };
+    </script>
+</body>
+</html>
