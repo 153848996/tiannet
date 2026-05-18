@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background: transparent;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* 确保 body 可以容纳缩放后的内容 */
+            overflow-x: hidden;
+        }
+
+        /* 缩放容器 */
+        #scale-container {
+            display: inline-block;
+            transform-origin: top center;
+            /* 默认不缩放，由 JS 动态调整 */
+            transform: scale(1);
+            /* 保留内部的所有样式 */
+        }
+
+        /* 原有样式保持不变 */
+        .content {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 210mm;
+            margin: 1cm auto;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        .container th,
+        .container td {
+            border: 1mm solid black;
+            padding: 5px;
+            font-family: Arial, sans-serif;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        .container th {
+            height: 30mm;
+            border-color: transparent transparent black transparent;
+        }
+
+        .container td {
+            height: 22mm;
+        }
+
+        .container th:first-child {
+            width: 58mm;
+        }
+
+        .container th:nth-child(2) {
+            width: 145mm;
+        }
+
+        .container th:nth-child(3) {
+            width: 40mm;
+        }
+
+        .split-cell {
+            display: table;
+            width: 100%;
+        }
+
+        .split-cell div {
+            display: table-row;
+        }
+
+        .split-cell div div {
+            display: table-cell;
+            height: 50%;
+            border-bottom: 1mm solid transparent;
+            text-align: right;
+        }
+
+        .split-last-row-cell {
+            display: table-cell;
+            height: 22mm;
+            border: 1mm solid black;
+        }
+
+        .split-last-row-cell div {
+            display: table-cell;
+            height: 50%;
+            border-right: 1mm solid black;
+            text-align: center;
+        }
+
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        td {
+            border: 1px solid black;
+            padding: 5px;
+        }
+
+        td.highlight {
+            background-color: lightgray;
+        }
+
+        @media print {
+            td.highlight {
+                background-color: transparent;
+            }
+            /* 打印时移除缩放，恢复原始尺寸 */
+            #scale-container {
+                transform: none !important;
+            }
+        }
+
+        #result {
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 将所有内容包裹在缩放容器中 -->
+    <div id="scale-container">
+        <p style="padding-top: 7pt;font-size: 30px;"><th colspan="6">下乡 、 出差申请单</th></p>
+
+        <p class="s1" style="padding-top: 2pt;padding-bottom: 2pt;text-align: center;">
+            <input type="date" style="border: 1px solid transparent;font-size: 18px">
+        </p>
+        <table style="margin: 0 auto;border-collapse:collapse;" cellspacing="0">
+            <tr style="height:41pt">
+                <td style="width:164pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt"
+                    rowspan="2">
+                    <p class="s2" style="padding-left: 53pt;text-indent: 0pt;text-align: left;font-size: 18px;">出 差 人</p>
+                </td>
+                <td style="width:141pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                    <p class="s3" style="padding-top: 1pt;padding-left: 37pt;padding-right: 36pt;text-indent: 0pt;text-align: center;font-size: 18px;">科 室</p>
+                </td>
+                <td style="width:269pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt;
+font-family: KaiTi, SimSun;font-size: 25px;" colspan="2" width="52.5mm" class="highlight" contenteditable="true">
+                </td>
+                <td style="width:117pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt"
+                    rowspan="2">
+                    <p class="s3" style="padding-left: 37pt;text-indent: 0pt;text-align: left;font-size: 18px;">备 注</p>
+                </td>
+            </tr>
+            <tr style="height:43pt">
+                <td style="width:141pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                    <p class="s2" style="padding-left: 37pt;padding-right: 37pt;text-indent: 0pt;text-align: center;font-size: 18px;">姓     名</p>
+                </td>
+                <td style="width:269pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt;
+font-family: KaiTi, SimSun;font-size: 25px;" colspan="2" width="52.5mm" class="highlight" contenteditable="true">
+                </td>
+            </tr>
+            <tr style="height:50pt">
+                <td style="width:164pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                    <p class="s4" style="padding-left: 52pt;padding-right: 52pt;text-indent: 0pt;text-align: center;font-size: 18px;">出差事由</p>
+                </td>
+                <td style="width:410pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt;
+font-family: KaiTi, SimSun;font-size: 25px;" colspan="3" width="52.5mm" class="highlight" contenteditable="true">
+                </td>
+                <td style="width:117pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt;
+font-family: KaiTi, SimSun;font-size: 25px;" width="52.5mm" class="highlight" contenteditable="true">
+                </td>
+            </tr>
+            <tr style="height:30pt">
+                <td style="width:164pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                    <p class="s5" style="padding-top: 9pt;padding-left: 52pt;padding-right: 52pt;text-indent: 0pt;text-align: center;font-size: 18px;">出差地点</p>
+                </td>
+                <td style="width:410pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt;
+font-family: KaiTi, SimSun;font-size: 25px;" colspan="3" width="52.5mm" class="highlight" contenteditable="true">
+                </td>
+                <td style="width:117pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt;
+font-family: KaiTi, SimSun;font-size: 25px;" width="52.5mm" class="highlight" contenteditable="true">
+                </td>
+            </tr>
+            <tr style="height:30pt">
+                <td style="width:164pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                    <p class="s3" style="padding-left: 52pt;padding-right: 52pt;text-indent: 0pt;text-align: center;font-size: 18px;">出差时间</p>
+                </td>
+                <td colspan="3" style="width: 156mm;" class="highlight">
+                    <label for="start_date">自</label>
+                    <input type="date" id="start_date" style="width: 35mm;border: 1px solid transparent;font-size: 18px;">
+
+                    <label for="end_date">至</label>
+                    <input type="date" id="end_date" style="width: 35mm;border: 1px solid transparent;font-size: 18px;">
+
+                    <p id="result"></p>
+                </td>
+                <td style="width:117pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt;
+font-family: KaiTi, SimSun;font-size: 25px;" class="highlight" contenteditable="true">
+                </td>
+            </tr>
+            <tr style="height:62pt">
+                <td style="width:164pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                    <p class="s7" style="vertical-align: middle;padding-left: 52pt;padding-right: 52pt;text-indent: 0pt;text-align: center;font-size: 18px;">审 批</p>
+                </td>
+                <td style="width:175pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt;">
+                </td>
+                <td style="width:111pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt;">
+                    <p class="s8" vertical-align="middle" style="padding-left: 27pt;text-indent: 0pt;text-align: left;font-size: 18px;">审批时间</p>
+                </td>
+                <td style="width:124pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt;"
+                    colspan="2">
+                </td>
+            </tr>
+            <tr style="height:20pt">
+                <td style="width:124pt; border:0pt solid; " colspan='3'></td>
+                <td style="width:124pt; border:0pt solid; " colspan='2' contenteditable="true">
+                    <P>在此输入单位名</P>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        // 日期计算脚本（保持不变）
+        var startDateInput = document.getElementById("start_date");
+        var endDateInput = document.getElementById("end_date");
+        var resultParagraph = document.getElementById("result");
+
+        startDateInput.addEventListener("input", updateDateDifference);
+        endDateInput.addEventListener("input", updateDateDifference);
+        updateDateDifference();
+
+        function updateDateDifference() {
+            var startDate = new Date(startDateInput.value);
+            var endDate = new Date(endDateInput.value);
+            var timeDifference = endDate - startDate;
+            var daysDifference = Math.floor(timeDifference / (1000 * 60 * 60 * 24) + 1);
+            resultParagraph.textContent = "共计：" + daysDifference + " 天";
+        }
+
+        // 动态缩放脚本
+        (function() {
+            const container = document.getElementById('scale-container');
+            
+            function rescale() {
+                // 内容的原始宽度（取 scrollWidth）
+                const contentWidth = container.scrollWidth;
+                const windowWidth = window.innerWidth;
+                // 只有当窗口宽度小于内容宽度时才缩放，否则保持 1:1
+                const scale = Math.min(1, windowWidth / contentWidth);
+                container.style.transform = `scale(${scale})`;
+            }
+
+            // 页面加载和窗口大小改变时重新计算
+            window.addEventListener('load', rescale);
+            window.addEventListener('resize', rescale);
+        })();
+    </script>
+</body>
+
+</html>
