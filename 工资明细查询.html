@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工资明细查询系统 (云端版)</title>
+    <title>工资明细查询系统</title>
     
-    <!-- 1. 引入 Firebase SDK -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <!-- 2. 必须引入 Excel 解析库 (原代码缺失此项) -->
+    <!-- Excel 解析库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         :root { --primary-color: #1a5fb4; --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333; }
         body { font-family: "Microsoft YaHei", sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
+        .container { max-width: 900px; margin: 0 auto; }
         .main-header { text-align: center; margin-bottom: 30px; cursor: pointer; transition: opacity 0.3s; user-select: none; }
         .main-header:hover { opacity: 0.8; }
         .main-header h1 { display: inline-block; vertical-align: middle; margin: 0; color: var(--primary-color); font-size: 28px; }
@@ -23,27 +23,37 @@
         .admin-hint { font-size: 12px; color: #999; margin-top: 5px; opacity: 0; transition: opacity 0.3s; }
         .main-header:hover .admin-hint { opacity: 1; }
         .card { background: var(--card-bg); border-radius: 8px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .btn { display: inline-block; padding: 12px 20px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; text-align: center; width: 100%; box-sizing: border-box; transition: background 0.2s; }
+        .btn { display: inline-block; padding: 10px 18px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 15px; text-align: center; box-sizing: border-box; transition: background 0.2s; margin: 5px; }
         .btn:hover { background: #164d8f; }
         .btn:disabled { background: #ccc; cursor: not-allowed; }
         .btn-danger { background: #e74c3c; }
-        .btn-secondary { background: #95a5a6; margin-top: 10px; }
-        input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 16px; outline: none; }
+        .btn-secondary { background: #95a5a6; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        input[type="text"], input[type="password"], input[type="file"], input[type="number"] { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 15px; outline: none; }
         input:focus { border-color: var(--primary-color); box-shadow: 0 0 5px rgba(26, 95, 180, 0.2); }
-        .preview-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-        .preview-table th, .preview-table td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        .preview-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+        .preview-table th, .preview-table td { border: 1px solid #eee; padding: 8px 6px; text-align: left; }
         .preview-table th { background: #f8f9fa; font-weight: 600; }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; background: #d4edda; color: #155724; }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; background: #d4edda; color: #155724; }
         .result-card { display: none; text-align: left; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .result-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .result-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
         .result-item:last-child { border-bottom: none; }
-        .result-label { color: #666; font-weight: 500; min-width: 100px; }
+        .result-label { color: #666; font-weight: 500; min-width: 120px; }
         .result-value { color: #333; text-align: right; flex: 1; margin-left: 10px; word-break: break-all; font-family: "Courier New", monospace; }
         .highlight { color: var(--primary-color); font-weight: bold; font-size: 1.1em; }
         .alert { padding: 12px; background: #f8d7da; color: #721c24; border-radius: 5px; margin-top: 15px; display: none; text-align: center; font-size: 14px; }
         .hidden { display: none; }
         .loading { color: #666; font-size: 12px; margin-top: 5px; display: none; }
+        .month-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 15px 0; }
+        .month-tag { padding: 6px 12px; background: #e9f0f8; border-radius: 20px; cursor: pointer; font-size: 13px; transition: 0.2s; }
+        .month-tag:hover, .month-tag.active { background: var(--primary-color); color: white; }
+        .summary-section { margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; }
+        .summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        .summary-table th, .summary-table td { border: 1px solid #eee; padding: 6px; }
+        .summary-table th { background: #f8f9fa; }
+        .total-row { font-weight: bold; background: #f1f5f9; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 25px 0; }
     </style>
 </head>
 <body>
@@ -57,16 +67,39 @@
         <!-- 管理员面板 -->
         <div id="admin-panel" class="card hidden">
             <h3 style="margin-top:0; color:var(--primary-color);">📂 智能导入工资表</h3>
-            <p style="font-size: 13px; color: #666; margin-bottom: 20px;">数据将同步至云端，所有员工均可实时查询。</p>
+            <p style="font-size: 13px; color: #666;">Excel必须包含 <b>姓名、密码、月份</b> 三列（月份格式如2024-06）。数据将合并至云端。</p>
             <input type="file" id="file-upload" accept=".xlsx, .xls">
-            <button class="btn" id="btn-upload" onclick="handleFile()">上传并同步到云端</button>
+            <button class="btn" id="btn-upload" onclick="handleFile()">上传并合并到云端</button>
             <div class="loading" id="upload-loading">正在上传数据，请稍候...</div>
-            <div id="status-msg" style="margin-top:15px; color: green; font-weight: bold; font-size: 14px;"></div>
-            <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
+            <div id="status-msg" style="margin-top:10px; color: green; font-weight: bold; font-size: 14px;"></div>
+            
+            <hr>
+            <h3 style="color:var(--primary-color);">📊 数据汇总</h3>
+            <!-- 员工年度汇总 -->
+            <div style="margin:15px 0;">
+                <h4>👤 员工年度汇总</h4>
+                <input type="text" id="summary-name" placeholder="员工姓名">
+                <input type="password" id="summary-pwd" placeholder="员工密码">
+                <input type="text" id="summary-year" placeholder="年份（如2024，留空则全部）">
+                <button class="btn btn-sm" onclick="generateEmployeeSummary()">生成汇总</button>
+                <div id="emp-summary-result" style="margin-top:10px; overflow-x:auto;"></div>
+            </div>
+            <!-- 全员汇总 -->
+            <div style="margin:15px 0;">
+                <h4>👥 全员工资汇总</h4>
+                <button class="btn btn-sm" onclick="generateAllSummary('employee')">按员工汇总</button>
+                <button class="btn btn-sm" onclick="generateAllSummary('month')">按月份汇总</button>
+                <button class="btn btn-sm" id="btn-export-summary" onclick="exportSummaryToExcel()" style="display:none;">📥 导出Excel</button>
+                <div id="all-summary-result" style="margin-top:10px; overflow-x:auto;"></div>
+            </div>
+
+            <hr>
             <h3 style="color:var(--primary-color);">🛠️ 系统维护</h3>
-            <button class="btn btn-danger" onclick="clearData()">🗑️ 清空云端所有数据</button>
-            <button class="btn btn-secondary" onclick="exitAdminMode()">🔙 返回员工查询页</button>
-            <h3 style="margin-top: 25px; color:var(--primary-color);">👁️ 数据预览 (前10条)</h3>
+            <button class="btn btn-danger btn-sm" onclick="clearData()">🗑️ 清空云端所有数据</button>
+            <button class="btn btn-secondary btn-sm" onclick="exitAdminMode()">🔙 返回员工查询页</button>
+            
+            <hr>
+            <h3 style="color:var(--primary-color);">👁️ 数据预览 (前10条)</h3>
             <div id="preview-container" style="overflow-x: auto;"></div>
         </div>
 
@@ -82,22 +115,30 @@
             <div id="result-card" class="result-card">
                 <div style="border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; margin-bottom: 20px; text-align: center;">
                     <h2 style="margin:0; color:var(--primary-color);" id="res-name"></h2>
-                    <p style="margin:5px 0 0; color:#999; font-size:14px;" id="res-month"></p>
+                    <p style="margin:5px 0; color:#999; font-size:14px;">请选择月份查看明细</p>
                 </div>
-                <div id="result-content"></div>
+                <div id="month-selector" class="month-list"></div>
+                <div id="result-content" style="margin-top:10px;"></div>
             </div>
         </div>
     </div>
 
 <script>
     // ============================================================
-    // ⚠️ 请在此处粘贴你的 Firebase 配置
+    // ⚠️ 请在此处填入你的 Firebase 配置
     // ============================================================
-
+    const firebaseConfig = {
+        apiKey: "你的APIKEY",
+        authDomain: "你的项目.firebaseapp.com",
+        databaseURL: "https://你的项目.firebaseio.com",
+        projectId: "你的项目",
+        storageBucket: "你的项目.appspot.com",
+        messagingSenderId: "你的ID",
+        appId: "你的APPID"
+    };
     // ============================================================
 
     let db, salaryRef;
-    // 安全初始化 Firebase
     try {
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
@@ -109,8 +150,10 @@
         alert("系统初始化失败，请检查网络连接或联系管理员。");
     }
 
-    // 全局变量
-    let allData = [];
+    let allData = [];                     // 内存缓存
+    let currentEmpRecords = [];          // 当前登录员工的记录
+    let currentSelectedMonth = null;
+    let lastSummaryData = null;          // 保存最后一次汇总数据用于导出
 
     window.onload = function() {
         if (!db) return;
@@ -126,7 +169,7 @@
         }
     }
 
-    // 加载数据到内存缓存
+    // 从 Firebase 加载数据到内存
     async function loadAndCacheData() {
         try {
             const snapshot = await salaryRef.once('value');
@@ -142,6 +185,7 @@
         }
     }
 
+    // ===================== 管理员功能 =====================
     function enterAdminMode() {
         if (!db) return;
         const password = prompt("🔒 请输入管理员密码:");
@@ -151,7 +195,7 @@
             window.scrollTo(0, 0);
             renderPreview();
         } else if (password !== null) {
-            alert("密码错误！请联系VX：i153848996获取");
+            alert("密码错误！");
         }
     }
 
@@ -160,6 +204,7 @@
         document.getElementById('emp-panel').classList.remove('hidden');
     }
 
+    // 上传并合并到 Firebase
     async function handleFile() {
         if (!db) return;
         const fileInput = document.getElementById('file-upload');
@@ -180,7 +225,6 @@
 
         reader.onload = async function(e) {
             try {
-                // 使用 XLSX 库解析文件
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -192,13 +236,13 @@
                     return;
                 }
 
-                // 寻找表头（包含“姓名”和“密码”的行）
+                // 寻找包含 姓名、密码、月份 的表头
                 let headerRowIndex = -1;
                 let headerKeys = [];
                 for (let i = 0; i < rawData.length; i++) {
                     if (!Array.isArray(rawData[i])) continue;
                     const rowText = JSON.stringify(rawData[i]);
-                    if (rowText.includes('姓名') && rowText.includes('密码')) {
+                    if (rowText.includes('姓名') && rowText.includes('密码') && (rowText.includes('月份') || rowText.includes('Month'))) {
                         headerRowIndex = i;
                         headerKeys = rawData[i].map(h => String(h).trim());
                         break;
@@ -206,46 +250,59 @@
                 }
 
                 if (headerRowIndex === -1) {
-                    alert("❌ 无法识别表头！请确保 Excel 包含“姓名”和“密码”列。");
+                    alert("❌ 无法识别表头！请确保 Excel 包含“姓名”、“密码”、“月份”三列。");
                     resetBtn();
                     return;
                 }
 
                 const dataRows = rawData.slice(headerRowIndex + 1);
-                const processedData = [];
+                const newRecords = [];
 
                 for(const row of dataRows) {
                     if (!Array.isArray(row)) continue;
                     let obj = {};
                     for (let j = 0; j < headerKeys.length; j++) {
                         let val = row[j];
-                        // 处理数字格式（去除小数点）
                         if (typeof val === 'number') val = String(Math.floor(val));
                         obj[headerKeys[j]] = val ?? '';
                     }
                     
                     const nameKey = headerKeys.find(k => k.includes('姓名'));
                     const pwdKey = headerKeys.find(k => k.includes('密码'));
+                    const monthKey = headerKeys.find(k => k.includes('月份') || k.includes('Month'));
                     
-                    if(nameKey && pwdKey && obj[nameKey] && obj[pwdKey]) {
-                        processedData.push({
+                    if(nameKey && pwdKey && monthKey && obj[nameKey] && obj[pwdKey] && obj[monthKey]) {
+                        newRecords.push({
                             name: String(obj[nameKey]).trim(),
                             password: String(obj[pwdKey]).trim(),
+                            month: String(obj[monthKey]).trim(),
                             details: obj
                         });
                     }
                 }
 
-                if (processedData.length === 0) {
-                    alert("未提取到有效数据。");
+                if (newRecords.length === 0) {
+                    alert("未提取到有效数据，请检查内容。");
                     resetBtn();
                     return;
                 }
 
+                // 合并到现有数据（基于 month+name+password 唯一）
+                await loadAndCacheData();
+                let merged = [...allData];
+                for (const rec of newRecords) {
+                    const idx = merged.findIndex(r => r.name === rec.name && r.password === rec.password && r.month === rec.month);
+                    if (idx >= 0) {
+                        merged[idx] = rec; // 覆盖
+                    } else {
+                        merged.push(rec);
+                    }
+                }
+
                 // 写入 Firebase
-                await salaryRef.set(processedData);
-                alert(`✅ 成功！已将 ${processedData.length} 条数据同步到云端。`);
-                allData = processedData;
+                await salaryRef.set(merged);
+                allData = merged;
+                alert(`✅ 成功！已将 ${newRecords.length} 条数据合并到云端，总计 ${merged.length} 条记录。`);
                 renderPreview();
 
             } catch (err) {
@@ -257,105 +314,54 @@
         reader.readAsArrayBuffer(file);
     }
 
-    // 修复：补充缺失的 resetBtn 函数
     function resetBtn() {
         const btn = document.getElementById('btn-upload');
         const loading = document.getElementById('upload-loading');
         btn.disabled = false;
-        btn.innerText = "上传并同步到云端";
+        btn.innerText = "上传并合并到云端";
         loading.style.display = 'none';
-    }
-
-    // 修复并修改：displaySalary 函数 (原代码未被调用，保留原样)
-    function displaySalary(data) {
-        const container = document.getElementById('salaryDetails');
-        container.innerHTML = ''; // 清空旧数据
-
-        // 1. 将数据对象转换为数组
-        const items = Object.keys(data).map(key => {
-            return {
-                originalKey: key,
-                value: data[key]
-            };
-        });
-
-        // 2. 排序逻辑：从大到小 (14 -> 1)
-        items.sort((a, b) => {
-            const indexA = a.originalKey.indexOf('_');
-            const indexB = b.originalKey.indexOf('_');
-
-            const numA = indexA > -1 ? parseInt(a.originalKey.substring(0, indexA)) : 0;
-            const numB = indexB > -1 ? parseInt(b.originalKey.substring(0, indexB)) : 0;
-
-            // 核心修改：b - a 实现倒序 (大数在前)
-            return b - a; 
-        });
-
-        // 3. 遍历生成 HTML
-        items.forEach((item, index) => {
-            // 获取显示名称（去掉序号和下划线）
-            let label = item.originalKey;
-            if (label.includes('_')) {
-                label = label.substring(label.indexOf('_') + 1);
-            }
-
-            // 特殊处理：去除“实发工资”的重复显示
-            // 逻辑：如果标签包含“实发工资”，且不是列表中的第一项（通常第一项就是最大的序号14），则跳过
-            if (label.includes('实发工资') && index !== 0) {
-                return; // 跳过这一项，不显示
-            }
-
-            // 创建列表项
-            const row = document.createElement('div');
-            row.className = 'salary-row'; // 保持原有的样式类
-
-            // 处理数值：如果是数字则右对齐，否则左对齐
-            const isNumber = !isNaN(parseFloat(item.value)) && isFinite(item.value);
-            const valueClass = isNumber ? 'salary-value number' : 'salary-value';
-
-            row.innerHTML = `
-                <div class="salary-label">
-                    ${label}
-                </div>
-                <div class="${valueClass}">
-                    ${item.value}
-                </div>
-            `;
-
-            container.appendChild(row);
-        });
     }
 
     async function renderPreview() {
         const container = document.getElementById('preview-container');
         container.innerHTML = '<p style="color:#999; text-align:center;">正在加载...</p>';
-        try {
-            const snapshot = await salaryRef.once('value');
-            const data = snapshot.val();
-            if (!Array.isArray(data) || data.length === 0) {
-                container.innerHTML = '<p style="color:#999; text-align:center;">云端暂无数据</p>';
-                allData = [];
-                return;
-            }
-            allData = data;
-            const keys = Object.keys(data[0]?.details || {}).filter(k => !k.includes('姓名') && !k.includes('密码'));
-            let html = '<table class="preview-table"><thead><tr>';
-            keys.forEach(k => html += `<th>${k}</th>`);
-            html += '<th>状态</th></tr></thead><tbody>';
-            data.slice(0, 10).forEach(row => {
-                html += '<tr>';
-                keys.forEach(k => {
-                    let val = row.details?.[k] ?? 'N/A';
-                    if (typeof val === 'string' && val.length > 15) val = val.substring(0, 15) + '...';
-                    html += `<td>${val}</td>`;
-                });
-                html += '<td><span class="status-badge">云端已同步</span></td></tr>';
-            });
-            container.innerHTML = html;
-        } catch (error) {
-            console.error("渲染预览失败:", error);
-            container.innerHTML = '<p style="color:#999; text-align:center;">加载失败，请刷新重试。</p>';
+        await loadAndCacheData();
+        
+        if (!Array.isArray(allData) || allData.length === 0) {
+            container.innerHTML = '<p style="color:#999; text-align:center;">云端暂无数据</p>';
+            return;
         }
+
+        // 收集所有字段用于表头
+        const allKeys = new Set();
+        allData.forEach(row => {
+            if (row.details) {
+                Object.keys(row.details).forEach(k => {
+                    if (!k.includes('姓名') && !k.includes('密码') && !k.includes('月份')) {
+                        allKeys.add(k);
+                    }
+                });
+            }
+        });
+        const keys = Array.from(allKeys);
+
+        let html = '<table class="preview-table"><thead><tr><th>月份</th><th>姓名</th>';
+        keys.forEach(k => html += `<th>${k}</th>`);
+        html += '<th>状态</th></tr></thead><tbody>';
+
+        allData.slice(0, 10).forEach(row => {
+            html += '<tr>';
+            html += `<td>${row.month || ''}</td>`;
+            html += `<td>${row.name || ''}</td>`;
+            keys.forEach(k => {
+                let val = row.details?.[k] ?? '';
+                if (typeof val === 'string' && val.length > 15) val = val.substring(0, 15) + '...';
+                html += `<td>${val}</td>`;
+            });
+            html += '<td><span class="status-badge">云端已同步</span></td></tr>';
+        });
+
+        container.innerHTML = html;
     }
 
     async function clearData() {
@@ -372,7 +378,209 @@
         }
     }
 
-    // 修复并修改：querySalary 函数
+    // ===================== 汇总功能 =====================
+    // 员工年度汇总
+    async function generateEmployeeSummary() {
+        const name = document.getElementById('summary-name').value.trim();
+        const pwd = document.getElementById('summary-pwd').value.trim();
+        const year = document.getElementById('summary-year').value.trim();
+        const container = document.getElementById('emp-summary-result');
+        
+        if (!name || !pwd) {
+            alert("请输入员工姓名和密码");
+            return;
+        }
+
+        await loadAndCacheData();
+        const records = allData.filter(r => r.name === name && r.password === pwd);
+        if (records.length === 0) {
+            container.innerHTML = '<p style="color:red;">未找到匹配记录</p>';
+            return;
+        }
+
+        let filtered = records;
+        if (year) {
+            filtered = records.filter(r => r.month && r.month.startsWith(year));
+            if (filtered.length === 0) {
+                container.innerHTML = `<p>${year}年无数据</p>`;
+                return;
+            }
+        }
+
+        // 动态收集数值字段和文本字段
+        const sampleDetails = filtered[0].details || {};
+        const numFields = Object.keys(sampleDetails).filter(k => 
+            !isNaN(parseFloat(sampleDetails[k])) && 
+            !k.includes('姓名') && !k.includes('密码') && !k.includes('月份')
+        );
+        const textFields = Object.keys(sampleDetails).filter(k => 
+            isNaN(parseFloat(sampleDetails[k])) && 
+            !k.includes('姓名') && !k.includes('密码') && !k.includes('月份')
+        );
+
+        let html = `<table class="summary-table"><thead><tr><th>月份</th>`;
+        numFields.forEach(f => html += `<th>${f}</th>`);
+        textFields.forEach(f => html += `<th>${f}</th>`);
+        html += '</tr></thead><tbody>';
+
+        const totals = {};
+        numFields.forEach(f => totals[f] = 0);
+
+        // 按月份排序
+        filtered.sort((a, b) => a.month.localeCompare(b.month));
+
+        filtered.forEach(rec => {
+            html += `<tr><td>${rec.month}</td>`;
+            numFields.forEach(f => {
+                let val = parseFloat(rec.details?.[f]) || 0;
+                totals[f] += val;
+                html += `<td>${val.toFixed(2)}</td>`;
+            });
+            textFields.forEach(f => html += `<td>${rec.details?.[f] || ''}</td>`);
+            html += '</tr>';
+        });
+
+        // 合计行
+        html += `<tr class="total-row"><td><b>合计</b></td>`;
+        numFields.forEach(f => html += `<td><b>${totals[f].toFixed(2)}</b></td>`);
+        textFields.forEach(() => html += `<td></td>`);
+        html += '</tr></tbody></table>';
+
+        container.innerHTML = html;
+    }
+
+    // 全员汇总（按员工或按月份）
+    async function generateAllSummary(type) {
+        const container = document.getElementById('all-summary-result');
+        const exportBtn = document.getElementById('btn-export-summary');
+        
+        await loadAndCacheData();
+        if (allData.length === 0) {
+            container.innerHTML = '<p>无数据</p>';
+            exportBtn.style.display = 'none';
+            lastSummaryData = null;
+            return;
+        }
+
+        // 动态收集数值字段（取所有记录的第一个记录的 details 作为基准）
+        const sample = allData[0].details || {};
+        const numFields = Object.keys(sample).filter(k => 
+            !isNaN(parseFloat(sample[k])) && 
+            !k.includes('姓名') && !k.includes('密码') && !k.includes('月份')
+        );
+
+        let headers = [];
+        let rows = [];
+
+        if (type === 'employee') {
+            const empMap = new Map();
+            allData.forEach(r => {
+                if (!empMap.has(r.name)) empMap.set(r.name, { totals: {}, count: 0 });
+                const entry = empMap.get(r.name);
+                entry.count++;
+                numFields.forEach(f => {
+                    entry.totals[f] = (entry.totals[f] || 0) + (parseFloat(r.details?.[f]) || 0);
+                });
+            });
+
+            headers = ['姓名', ...numFields, '记录数'];
+            const sorted = Array.from(empMap.entries()).sort((a,b) => a[0].localeCompare(b[0], 'zh'));
+
+            sorted.forEach(([name, entry]) => {
+                const row = [name];
+                numFields.forEach(f => row.push(entry.totals[f].toFixed(2)));
+                row.push(entry.count);
+                rows.push(row);
+            });
+
+            // 合计行
+            const totalRow = ['合计'];
+            numFields.forEach(f => {
+                let sum = sorted.reduce((acc, [_, e]) => acc + e.totals[f], 0);
+                totalRow.push(sum.toFixed(2));
+            });
+            totalRow.push(allData.length);
+            rows.push(totalRow);
+
+            // 渲染表格
+            let html = `<table class="summary-table"><thead><tr>`;
+            headers.forEach(h => html += `<th>${h}</th>`);
+            html += '</tr></thead><tbody>';
+            rows.forEach((row, index) => {
+                const isTotal = (index === rows.length - 1);
+                html += `<tr class="${isTotal ? 'total-row' : ''}">`;
+                row.forEach(cell => html += `<td>${cell}</td>`);
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+        } else if (type === 'month') {
+            const monthMap = new Map();
+            allData.forEach(r => {
+                if (!monthMap.has(r.month)) monthMap.set(r.month, { totals: {}, count: 0 });
+                const entry = monthMap.get(r.month);
+                entry.count++;
+                numFields.forEach(f => {
+                    entry.totals[f] = (entry.totals[f] || 0) + (parseFloat(r.details?.[f]) || 0);
+                });
+            });
+
+            headers = ['月份', ...numFields, '人数'];
+            const sortedMonths = Array.from(monthMap.keys()).sort();
+
+            sortedMonths.forEach(month => {
+                const e = monthMap.get(month);
+                const row = [month];
+                numFields.forEach(f => row.push(e.totals[f].toFixed(2)));
+                row.push(e.count);
+                rows.push(row);
+            });
+
+            // 合计行
+            const totalRow = ['合计'];
+            numFields.forEach(f => {
+                let sum = sortedMonths.reduce((acc, m) => acc + monthMap.get(m).totals[f], 0);
+                totalRow.push(sum.toFixed(2));
+            });
+            totalRow.push(allData.length);
+            rows.push(totalRow);
+
+            let html = `<table class="summary-table"><thead><tr>`;
+            headers.forEach(h => html += `<th>${h}</th>`);
+            html += '</tr></thead><tbody>';
+            rows.forEach((row, index) => {
+                const isTotal = (index === rows.length - 1);
+                html += `<tr class="${isTotal ? 'total-row' : ''}">`;
+                row.forEach(cell => html += `<td>${cell}</td>`);
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // 保存汇总数据供导出
+        lastSummaryData = { headers, rows };
+        exportBtn.style.display = 'inline-block';
+    }
+
+    // 导出 Excel
+    function exportSummaryToExcel() {
+        if (!lastSummaryData) {
+            alert("暂无汇总数据，请先生成汇总。");
+            return;
+        }
+        const { headers, rows } = lastSummaryData;
+        const wsData = [headers, ...rows];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "工资汇总");
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}`;
+        XLSX.writeFile(wb, `工资汇总_${timestamp}.xlsx`);
+    }
+
+    // ===================== 员工查询功能 =====================
     async function querySalary() {
         if (!db) return;
         const name = document.getElementById('query-name').value.trim();
@@ -388,60 +596,93 @@
             return;
         }
 
-        if (allData.length === 0) {
-            await loadAndCacheData();
+        await loadAndCacheData();
+        currentEmpRecords = allData.filter(r => r.name === name && r.password === inputPwd);
+
+        if (currentEmpRecords.length === 0) {
+            alert("姓名或密码错误，或无工资记录。");
+            return;
         }
 
-        let match = null;
-        if (Array.isArray(allData)) {
-            for(const row of allData) {
-                if(row && row.name === name && row.password === inputPwd) {
-                    match = row;
-                    break;
-                }
+        document.getElementById('res-name').innerText = name;
+        resultCard.style.display = 'block';
+        renderMonthSelector();
+    }
+
+    function renderMonthSelector() {
+        const months = currentEmpRecords.map(r => r.month).sort();
+        let html = '';
+        months.forEach(m => {
+            html += `<span class="month-tag ${m === currentSelectedMonth ? 'active' : ''}" onclick="selectMonth('${m}')">${m}</span>`;
+        });
+        document.getElementById('month-selector').innerHTML = html;
+        
+        if (months.length > 0 && !currentSelectedMonth) {
+            selectMonth(months[0]);
+        } else if (currentSelectedMonth) {
+            renderDetailForMonth(currentSelectedMonth);
+        }
+    }
+
+    function selectMonth(month) {
+        currentSelectedMonth = month;
+        document.querySelectorAll('.month-tag').forEach(tag => {
+            tag.classList.toggle('active', tag.innerText === month);
+        });
+        renderDetailForMonth(month);
+    }
+
+    function renderDetailForMonth(month) {
+        const record = currentEmpRecords.find(r => r.month === month);
+        if (!record) {
+            document.getElementById('result-content').innerHTML = '<p>数据异常</p>';
+            return;
+        }
+
+        const details = record.details || {};
+        const DISPLAY_ORDER = [
+            '级别薪级', '职务岗位', '绩效工资', '艰苦边远', '其他', '补发工资', '十三月工资', '应发工资',
+            '公积金', '医保', '职业年金', '养老保险', '失业保险', '扣发小计', '实发工资（不含车补）'
+        ];
+
+        let html = '';
+        for (const key of DISPLAY_ORDER) {
+            if (details.hasOwnProperty(key)) {
+                const isPay = key.includes('实发') || key.includes('合计') || key.includes('应发');
+                html += `
+                    <div class="result-item">
+                        <span class="result-label">${key}:</span>
+                        <span class="result-value ${isPay ? 'highlight' : ''}">${details[key] ?? ''}</span>
+                    </div>
+                `;
             }
         }
 
-        if (match) {
-            document.getElementById('res-name').innerText = match.name || '未知';
-            document.getElementById('res-month').innerText = "工资详情";
+        document.getElementById('result-content').innerHTML = html || '<p style="text-align:center; color: #999;">暂无详细数据</p>';
+    }
 
-            // --- 核心修改：固定顺序显示 ---
-            // 定义你要求的固定显示顺序
-            const DISPLAY_ORDER = [
-                '级别薪级', '岗位职务', '绩效工资', '艰苦边远', '其他', '补发工资', '十三月工资', '应发工资',
-                '公积金', '医保', '职业年金', '养老保险', '失业保险', '扣发小计', '实发工资（不含车补）'
-            ];
-
-            let html = '';
-            // 遍历预设顺序数组
-            for (const key of DISPLAY_ORDER) {
-                // 在员工数据中查找对应字段
-                if (match.details && match.details.hasOwnProperty(key)) {
-                    const value = match.details[key];
-                    // 判断是否是需要高亮的关键项目
-                    const isPay = key.includes('实发') || key.includes('合计') || key.includes('应发');
-                    // 生成对应的 HTML 片段
-                    html += `
-                        <div class="result-item">
-                            <span class="result-label">${key}:</span>
-                            <span class="result-value ${isPay ? 'highlight' : ''}">${value ?? 'N/A'}</span>
-                        </div>
-                    `;
-                }
-                // 如果 details 中没有这个 key，循环会继续下一个，不会显示该项
-            }
-
-            // 如果没有匹配到任何预设项目，或者 details 为空
-            if (!html) {
-                html = '<p style="text-align:center; color: #999;">暂无详细数据</p>';
-            }
-
-            document.getElementById('result-content').innerHTML = html;
-            resultCard.style.display = 'block';
-        } else {
-            alert("姓名或密码错误。");
-        }
+    // 保留原 displaySalary（虽未使用，但预防外部调用）
+    function displaySalary(data) {
+        const container = document.getElementById('salaryDetails');
+        if (!container) return;
+        container.innerHTML = '';
+        const items = Object.keys(data).map(key => ({ originalKey: key, value: data[key] }));
+        items.sort((a,b) => {
+            const idxA = a.originalKey.indexOf('_'), idxB = b.originalKey.indexOf('_');
+            const numA = idxA > -1 ? parseInt(a.originalKey.substring(0, idxA)) : 0;
+            const numB = idxB > -1 ? parseInt(b.originalKey.substring(0, idxB)) : 0;
+            return b - a;
+        });
+        items.forEach((item, index) => {
+            let label = item.originalKey;
+            if (label.includes('_')) label = label.substring(label.indexOf('_')+1);
+            if (label.includes('实发工资') && index !== 0) return;
+            const row = document.createElement('div');
+            row.className = 'salary-row';
+            const isNumber = !isNaN(parseFloat(item.value)) && isFinite(item.value);
+            row.innerHTML = `<div class="salary-label">${label}</div><div class="salary-value ${isNumber?'number':''}">${item.value}</div>`;
+            container.appendChild(row);
+        });
     }
 </script>
 </body>
